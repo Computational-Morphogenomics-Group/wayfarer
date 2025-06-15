@@ -1,0 +1,36 @@
+Package: Wayfarer
+Type: Package
+Title: Multi-scale spatial binning analysis
+Version: 0.99.0
+Authors@R: c(
+    person("Lambda", "Moses", email = "dl3764@columbia.edu", 
+    role = c("aut", "cre"),
+    comment = c(ORCID = "0000-0002-7092-9427"))
+  )
+Description: This package performs spatial binning at different resolutions and
+    compares Voyager spatial analysis results across the resolutions. Plotting
+    functions across resolutions are implemented. Comparison across both scales
+    and samples is under development.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Imports:
+    alabaster.sfe,
+    bluster,
+    dplyr,
+    ggplot2,
+    patchwork,
+    rlang,
+    scales,
+    SingleCellExperiment,
+    SpatialFeatureExperiment,
+    spdep,
+    stats,
+    tibble,
+    tidyr,
+    Voyager
+Suggests:
+    igraph
+biocViews:
+    Transcriptomics,
+    Spatial
+RoxygenNote: 7.3.2
