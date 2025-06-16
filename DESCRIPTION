@@ -25,6 +25,7 @@ Imports:
     SpatialFeatureExperiment,
     spdep,
     stats,
+    stringr,
     tibble,
     tidyr,
     Voyager

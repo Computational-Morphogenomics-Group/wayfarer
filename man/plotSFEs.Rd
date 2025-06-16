@@ -9,7 +9,7 @@ plotSFEs(sfes, feature, bbox = NULL, ...)
 \arguments{
 \item{sfes}{A list of SFE objects.}
 
-\item{feature}{Gene to plot}
+\item{feature}{Gene to plot, only one gene}
 
 \item{bbox}{Bounding box to plot a subarea}
 

@@ -29,5 +29,7 @@ Moran's I has been computed for the same genes across different spatial
 scales. This function gets the Moran's I values for all genes and resolutions
 and clusters the patterns with which Moran's I's vary through scales, as a
 way to cluster genes. Leiden and hierarchical clustering are performed on the
-Moran's I values themselves and on the diff between adjacent scales.
+Moran's I values themselves and on the diff between adjacent scales. The
+\code{\link[bluster]{approxSilhouette}} function can be used to assess
+cluster quality.
 }
