@@ -21,6 +21,7 @@ Imports:
     patchwork,
     rlang,
     scales,
+    scico,
     SingleCellExperiment,
     SpatialFeatureExperiment,
     spdep,
