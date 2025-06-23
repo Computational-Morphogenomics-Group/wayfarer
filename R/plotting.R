@@ -105,6 +105,8 @@ plotMoranCurves <- function(df, color_by = NULL, facet_by = NULL,
 #' Plot gene expression from multiple SFE objects
 #'
 #' This is useful to show what this gene looks like across different bin sizes.
+#' When there are more than 200,000 cells or bins and no bbox is specified, then
+#' scattermore is used to speed up plotting.
 #'
 #' @param sfes A list of SFE objects.
 #' @param feature Gene to plot, only one gene
@@ -116,16 +118,32 @@ plotMoranCurves <- function(df, color_by = NULL, facet_by = NULL,
 #' @importFrom patchwork wrap_plots
 #' @return A \code{patchwork} object
 #' @export
-plotSFEs <- function(sfes, feature, bbox = NULL, ...) {
-    ps <- lapply(sfes, function(x) {
-        p <- if (ncol(x) > 2e5 && is.null(bbox))
-            plotSpatialFeature(x, feature, colGeometryName = "centroids",
-                               scattermore = TRUE)
-        else plotSpatialFeature(x, feature, bbox = bbox)
-        p + ggtitle(paste0("I = ", format(rowData(x)[feature, "moran_sample01"],
-                                          digits = 3)))
+plotSFEs <- function(sfes, feature, bbox = NULL, show_sizes = TRUE,
+                     ncol = NULL, nrow = NULL, widths = NULL,
+                     heights = NULL, design = NULL, ...) {
+    args <- list(...)
+    swap_rownames <- args[["swap_rownames"]]
+    ps <- lapply(seq_along(sfes), function(i) {
+        if (!is.null(swap_rownames))
+            feature1 <- rownames(sfes[[i]])[rowData(sfes[[i]])[[swap_rownames]] == feature]
+        else feature1 <- feature
+        p <- if (ncol(sfes[[i]]) > 2e5 && is.null(bbox))
+            plotSpatialFeature(sfes[[i]], feature, colGeometryName = "centroids",
+                               scattermore = TRUE, ...)
+        else plotSpatialFeature(sfes[[i]], feature, bbox = bbox, ...)
+        if (show_sizes) {
+            tt <- paste0(names(sfes)[[i]], " μm, I = ",
+                         format(rowData(sfes[[i]])[feature1, "moran_sample01"],
+                                digits = 3))
+        } else {
+            tt <- paste0(names(sfes)[[i]], ", I = ",
+                         format(rowData(sfes[[i]])[feature1, "moran_sample01"],
+                                digits = 3))
+        }
+        p + ggtitle(tt)
     })
-    wrap_plots(ps)
+    wrap_plots(ps, ncol = ncol, nrow = nrow, widths = widths,
+               heights = heights, design = design)
 }
 
 #' Plot Lee's L curves
@@ -208,22 +226,32 @@ plotClusterMedians <- function(df, cluster_col) {
 #' @param sfes A list of SFE objects, whose names must be the bin sizes.
 #' @param pair_use Gene pair to plot; the two gene names are separated by "_" as
 #' in \code{\link{clusterLeeCurves}} output.
-#' @param sides Side lengths to plot
+#' @param inds Indices of which SFE objects to plot
 #' @param df_lee Data frame from \code{\link{clusterLeeCurves}}, where Lee's L
 #' values are extracted to annotate the plot.
 #' @return A \code{patchwork} object.
 #' @importFrom stringr str_split_fixed
 #' @export
-plotSFEsLee <- function(sfes, pair_use, sides, df_lee, bbox = NULL) {
+plotSFEsLee <- function(sfes, pair_use, inds, df_lee, bbox = NULL,
+                        show_sizes = TRUE, annotations = NULL, ...) {
     pair1 <- str_split_fixed(pair_use, "_", n = 2)[1,]
     df <- df_lee |> filter(pair == pair_use)
-    l <- df$lee
-    inds <- match(sides, as.integer(names(sfes)))
-    ps <- lapply(inds, function(i) {
+    if ("sample" %in% names(df_lee)) {
+        l <- df$lee[match(names(sfes), df$sample)]
+    } else l <- df$lee
+    ps <- lapply(seq_along(inds), function(j) {
+        i <- inds[[j]]
         p <- if (ncol(sfes[[i]]) > 2e5 && is.null(bbox))
-            plotSpatialFeature(sfes[[i]], pair1, colGeometryName = "centroids", scattermore = TRUE)
-        else plotSpatialFeature(sfes[[i]], pair1, bbox = bbox)
-        p + ggtitle(paste0("L = ", format(l[i], digits = 3)))
+            plotSpatialFeature(sfes[[i]], pair1, colGeometryName = "centroids",
+                               scattermore = TRUE, ...)
+        else plotSpatialFeature(sfes[[i]], pair1, bbox = bbox, ...)
+        if (show_sizes)
+            title <- paste0(names(sfes)[[i]], " μm, L = ", format(l[i], digits = 3))
+        else
+            title <- paste0(names(sfes)[[i]], ", L = ", format(l[i], digits = 3))
+        if (!is.null(annotations)) title <- paste(title, annotations[j], sep = ", ")
+        p[[1]] <- p[[1]] + ggtitle(title)
+        p
     })
-    wrap_plots(ps)
+    wrap_plots(ps, tag_level = "keep")
 }

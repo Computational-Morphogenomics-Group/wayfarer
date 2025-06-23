@@ -4,7 +4,16 @@
 \alias{plotSFEsLee}
 \title{Plot pairs of genes in space from multiple SFE objects}
 \usage{
-plotSFEsLee(sfes, pair_use, sides, df_lee, bbox = NULL)
+plotSFEsLee(
+  sfes,
+  pair_use,
+  inds,
+  df_lee,
+  bbox = NULL,
+  show_sizes = TRUE,
+  annotations = NULL,
+  ...
+)
 }
 \arguments{
 \item{sfes}{A list of SFE objects, whose names must be the bin sizes.}
@@ -12,12 +21,15 @@ plotSFEsLee(sfes, pair_use, sides, df_lee, bbox = NULL)
 \item{pair_use}{Gene pair to plot; the two gene names are separated by "_" as
 in \code{\link{clusterLeeCurves}} output.}
 
-\item{sides}{Side lengths to plot}
+\item{inds}{Indices of which SFE objects to plot}
 
 \item{df_lee}{Data frame from \code{\link{clusterLeeCurves}}, where Lee's L
 values are extracted to annotate the plot.}
 
 \item{bbox}{Bounding box to plot a subarea}
+
+\item{...}{Other arguments to pass to
+\code{\link[Voyager]{plotSpatialFeature}}}
 }
 \value{
 A \code{patchwork} object.

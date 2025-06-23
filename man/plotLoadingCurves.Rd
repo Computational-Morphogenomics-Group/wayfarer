@@ -9,28 +9,33 @@ plotLoadingCurves(
   pc = 1,
   reduction = "PCA",
   field = "rotation",
-  color_by = c("moran", "loading"),
+  color_by = c("loading", "moran"),
   color_ind = 1,
-  flip = FALSE
+  flip = FALSE,
+  ...
 )
 }
 \arguments{
 \item{sfes}{A list of SFE objects with names as bin sizes}
 
 \item{pc}{Index of principal component or eigenvector or loading vector to
-plot}
+plot. Facetting is used when length of this argument is greater than 1.}
 
 \item{reduction}{Name of dimension reduction to plot}
 
 \item{field}{Name of the attribute of the dimension reduction that holds the
 gene loadings}
 
-\item{color_by}{Whether to color the curves by Moran's I or loading values}
+\item{color_by}{Whether to color the curves by Moran's I or loading values.
+Can only color by Moran's I when multiple PCs are plotted because each PC has
+different gene loadings.}
 
 \item{color_ind}{Since one curve can only have one color, choose the index of
 the SFE object in \code{sfes} whose values are used for coloring.}
 
 \item{flip}{Logical, whether to flip the signs of the loadings.}
+
+\item{...}{Arguments passed to \code{\link[ggplot2]{facet_wrap}}.}
 }
 \value{
 A \code{ggplot} object

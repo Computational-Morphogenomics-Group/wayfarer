@@ -105,7 +105,8 @@ clusterLeeCurves <- function(dir, sides, cutoff = 0.2, hclust_params = list(),
     lees <- lapply(fns, readRDS)
     names(lees) <- sides
     lees <- lapply(lees, as.matrix)
-    lees <- lapply(lees, function(x) x[rns[[1]], rns[[1]]])
+    rns <- rownames(lees[[1]])
+    lees <- lapply(lees, function(x) x[rns, rns])
     df_lee <- .get_pairs_df(lees)
     df_lee <- df_lee |>
         mutate(any_corr = if_any(-pair, ~ abs(.x) > cutoff)) |>

@@ -4,7 +4,18 @@
 \alias{plotSFEs}
 \title{Plot gene expression from multiple SFE objects}
 \usage{
-plotSFEs(sfes, feature, bbox = NULL, ...)
+plotSFEs(
+  sfes,
+  feature,
+  bbox = NULL,
+  show_sizes = TRUE,
+  ncol = NULL,
+  nrow = NULL,
+  widths = NULL,
+  heights = NULL,
+  design = NULL,
+  ...
+)
 }
 \arguments{
 \item{sfes}{A list of SFE objects.}
@@ -21,4 +32,6 @@ A \code{patchwork} object
 }
 \description{
 This is useful to show what this gene looks like across different bin sizes.
+When there are more than 200,000 cells or bins and no bbox is specified, then
+scattermore is used to speed up plotting.
 }
