@@ -67,6 +67,30 @@ clusterMoranCurves <- function(sfes, hclust_params = list(),
         rename(moran = value)
 }
 
+#' Cluster Geary's C curves
+#'
+#' Just like \code{\link{clusterMoranCurves}}, but for Geary's C.
+#'
+#' @inheritParams clusterMoranCurves
+#' @return A data frame.
+#' @export
+clusterGearyCurves <- function(sfes, hclust_params = list(),
+                               leiden_params = list(resolution = 0.8,
+                                                    objective_function = "modularity")) {
+    sides <- as.integer(names(sfes))
+    df_geary <- tibble(side = sides,
+                       gearys = lapply(sfes, function(x) {
+                           rowData(x) |> as.data.frame() |>
+                               rownames_to_column() |>
+                               dplyr::select(gene = rowname,
+                                             value = geary_sample01)
+                           # OK, what if the sample_id is something else?
+                       })) |>
+        unnest(cols = gearys)
+    .cluster_curves(df_geary, hclust_params, leiden_params) |>
+        rename(geary = value)
+}
+
 .get_pairs_df <- function(lees) {
     nr <- nrow(lees[[1]])
     inds_df <- tibble(j = unlist(lapply(seq_len(nr-1), function(x) rep(x+1, times = x))),

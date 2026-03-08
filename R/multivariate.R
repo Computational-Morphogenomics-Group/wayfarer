@@ -124,7 +124,7 @@ plotEigenvalues <- function(sfes, npcs = 20, reduction = "PCA", field = "varExpl
 #' @param flip Logical, whether to flip the signs of the loadings.
 #' @param ... Arguments passed to \code{\link[ggplot2]{facet_wrap}}.
 #' @importFrom scico scale_color_scico
-#' @importClassesFrom dplyr bind_rows
+#' @importFrom dplyr bind_rows
 #' @return A \code{ggplot} object
 #' @export
 plotLoadingCurves <- function(sfes, pc = 1, reduction = "PCA", field = "rotation",

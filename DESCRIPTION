@@ -15,6 +15,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
     alabaster.sfe,
+    arrow,
     bluster,
     dplyr,
     ggplot2,
@@ -23,16 +24,18 @@ Imports:
     scales,
     scico,
     SingleCellExperiment,
-    SpatialFeatureExperiment,
+    SpatialFeatureExperiment (>= 1.13.1),
+    SummarizedExperiment,
     spdep,
     stats,
     stringr,
     tibble,
     tidyr,
-    Voyager
+    tools,
+    Voyager (>= 1.13.1)
 Suggests:
     igraph
 biocViews:
     Transcriptomics,
     Spatial
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3

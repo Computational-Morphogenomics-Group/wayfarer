@@ -8,12 +8,14 @@ plotSFEs(
   sfes,
   feature,
   bbox = NULL,
+  title = NULL,
   show_sizes = TRUE,
   ncol = NULL,
   nrow = NULL,
   widths = NULL,
   heights = NULL,
   design = NULL,
+  crop = TRUE,
   ...
 )
 }
