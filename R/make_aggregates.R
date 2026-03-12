@@ -95,7 +95,7 @@ makeAggregates <- function(tx_file, out_path,
 
     for (s in sides) {
         cat("Processing", s, "\n")
-        sfe <- aggregateTx(fp, cellsize = s,
+        sfe <- aggregateTx(fp, cellsize = s, sample_id = sample_id,
                            spatialCoordsNames = c("x", "y"),
                            save_memory = TRUE, ...)
         if (!is.null(tissue_boundary))
@@ -113,9 +113,9 @@ makeAggregates <- function(tx_file, out_path,
 #'
 #' @param sfe SFE object with the aggregated bins, generated with
 #'   \code{\link{makeAggregates}}.
-#' @param tissue_geometry Either tissue boundary (with holes if present) or cell
-#'   segmentation polygons. Area of overlap of each bin with this geometry will
-#'   be computed.
+#' @param tissue_geometry Either tissue boundary (with holes if present in
+#'   tissue) or cell segmentation polygons. Area of overlap of each bin with
+#'   this geometry will be computed.
 #' @param BPPARAM A \code{\link[BiocParallel]{bpparam}}, to parallelize over
 #'   batches of bins.
 #' @param batch_size Number of bins in each batch.
@@ -123,7 +123,7 @@ makeAggregates <- function(tx_file, out_path,
 #'   instead of actual area.
 #' @return A numeric vector same length as \code{ncol(sfe)}.
 #' @importFrom sf st_union st_intersects st_covered_by st_area st_intersection
-#' st_overlaps st_as_sfc st_bbox
+#'   st_overlaps st_as_sfc st_bbox
 #' @export
 getBinOverlapProp <- function(sfe, tissue_geometry, BPPARAM = SerialParam(),
                               batch_size = 1000, prop = TRUE) {
@@ -131,13 +131,14 @@ getBinOverlapProp <- function(sfe, tissue_geometry, BPPARAM = SerialParam(),
     bins$index <- seq_len(ncol(sfe))
     bins$batch <- ceiling(bins$index/batch_size)
     AREA <- st_area(st_geometry(bins)[1]) # should be the same for all bins
-    areas <- numeric(nrow(bins))
-    areas[st_covered_by(bins, tissue_geometry, sparse = FALSE) |> as.vector()] <- AREA
-    inds_comp <- st_overlaps(bins, tissue_geometry, sparse = FALSE) |> as.vector()
-    areas[ind_comp] <- bplapply(unique(bins$batch), function(i) {
+    areas <- bplapply(unique(bins$batch), function(i) {
         g <- bins$geometry[bins$batch == i & inds_comp]
+        out <- numeric(length(g))
         xc <- st_union(tissue_geometry$geometry[st_intersects(st_as_sfc(st_bbox(g)), tissue_geometry, sparse = FALSE)])
-        st_area(st_intersection(g, xc))
+        out[st_covered_by(bins, tissue_geometry, sparse = FALSE) |> as.vector()] <- AREA
+        inds_comp <- st_overlaps(g, tissue_geometry, sparse = FALSE) |> as.vector()
+        out[inds_comp] <- st_area(st_intersection(g, xc))
+        out
     }, BPPARAM = BPPARAM) |> unlist()
     areas[is.na(areas)] <- 0
     if (prop) areas <- areas/AREA
@@ -172,6 +173,11 @@ removeEdgeBins <- function(sfe, overlap_props, min_prop = 0.9, quantile = NULL) 
     if (is.numeric(overlap_props) && length(overlap_props) != ncol(sfe)) {
         stop("Length of numeric overlap_props must be the same as ncol(sfe)")
     }
+    if (!is.null(quantile)) {
+        stopifnot(is.numeric(quantile))
+        stopifnot(length(quantile) == 1L)
+        stopifnot(quantile > 0 & quantile < 1)
+    }
     if (is.character(overlap_props)) {
         if (length(overlap_props) > 1L) stop("Character overlap_props must have length 1")
         if (!overlap_props %in% names(colData(sfe))) {
@@ -182,6 +188,6 @@ removeEdgeBins <- function(sfe, overlap_props, min_prop = 0.9, quantile = NULL) 
     if (is.null(quantile)) {
         sfe[,overlap_props > min_prop]
     } else {
-        sfe[,overlap_props > quantile(overlap_props, probs = 0.05)]
+        sfe[,overlap_props > quantile(overlap_props, probs = quantile)]
     }
 }

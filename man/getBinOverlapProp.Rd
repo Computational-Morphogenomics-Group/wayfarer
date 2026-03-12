@@ -16,9 +16,9 @@ getBinOverlapProp(
 \item{sfe}{SFE object with the aggregated bins, generated with
 \code{\link{makeAggregates}}.}
 
-\item{tissue_geometry}{Either tissue boundary (with holes if present) or cell
-segmentation polygons. Area of overlap of each bin with this geometry will
-be computed.}
+\item{tissue_geometry}{Either tissue boundary (with holes if present in
+tissue) or cell segmentation polygons. Area of overlap of each bin with
+this geometry will be computed.}
 
 \item{BPPARAM}{A \code{\link[BiocParallel]{bpparam}}, to parallelize over
 batches of bins.}
