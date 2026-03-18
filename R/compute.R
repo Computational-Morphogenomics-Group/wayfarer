@@ -20,11 +20,16 @@
 #' @param quantiles Numeric vector of quantiles of area of bin overlapping
 #'   tissue, can differ for different bin sizes. If not NULL, this will
 #'   supercede \code{min_props}.
+#' @param neg_regex Character vector of regex patterns indicating that a feature
+#'   is for negative control. Features matching any of these patterns will be
+#'   removed prior to analyses. Counts of these features are kept in the
+#'   aggregated input data in \code{dir}.
 #' @return Invisibly \code{out_dir}; the log normalization, QC, PCA, adjacency
 #'   graph, and Moran's I will be stored in the SFE object; the SFE object with
 #'   the results will be written to \code{out_dir} with directory names
 #'   "binx_esda". A data frame for Moran's I and  Lee's L across bin sizes will
-#'   be written to \code{out_dir} as CSV files.
+#'   be written to \code{out_dir} as CSV files. The "esda" means that
+#'   exploratory spatial data analysis (ESDA) has been performed.
 #' @importFrom scater logNormCounts runPCA addPerCellQC
 #' @importFrom Voyager runMoransI calculateBivariate
 #' @importFrom alabaster.base readObject
@@ -36,7 +41,11 @@ runBinAnalyses <- function(dir, out_dir, tissue_geometry,
                            min_props = 0.9, quantiles = NULL,
                            ncomponents = 30, queen = FALSE,
                            zero.policy = TRUE, p.adjust.method = "BH",
+                           neg_regex = c("^NegPrb", "^Blank", "^BLANK", "^NegControl", "Unassigned"),
                            BPPARAM = SerialParam(), ...) {
+    # TODO: can be rewritten with something like target, so it can be rerun only
+    # for items whose parameters (especially when it comes to removing edge bins)
+    # have changed.
     dir <- normalizePath(dir, mustWork = TRUE)
     bins_dir <- list.files(dir, "^bin\\d+$", include.dirs = TRUE, full.names = TRUE)
     if (!length(bins_dir)) {
@@ -80,6 +89,10 @@ runBinAnalyses <- function(dir, out_dir, tissue_geometry,
                                            batch_size = bs)
         sfe <- removeEdgeBins(sfe, overlap_props, min_prop = min_props[bin_sizes[i]],
                               quantile = quantiles[bin_sizes[i]])
+        # Remove negative control features
+        pattern <- paste(neg_regex, sep = "|")
+        sfe <- sfe[!grepl(pattern, rownames(sfe)),]
+        sfe <- sfe[,colSums(counts(sfe)) > 0]
         cat("Normalizing data\n")
         sfe <- addPerCellQC(sfe)
         sfe <- logNormCounts(sfe)
