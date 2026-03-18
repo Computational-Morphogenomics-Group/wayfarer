@@ -146,15 +146,3 @@ clusterLeeCurves <- function(dir, sides, cutoff = 0.2, hclust_params = list(),
                     mat = lee_mat) |>
         rename(lee = value, pair = gene)
 }
-
-# Actually, shall I write a function to run all the basic analyses for a list of SFEs at once?
-# The manual part really is choosing a threshold of proportion of bin in cells
-# The report is mostly just copy and paste. OK, so functions to:
-# 1. Make the bin aggregated SFEs, save to disk with alabaster.sfe
-# 2. Do whatever is in the notebooks, from filtering bins to running ESDA; I have
-# rules of thumbs for the slightly manual parts.
-# 3. Generate the Rmd reports from the analyses; I ran those notebooks manually because
-# I wanted to see and comment on the plots. Oh right, the bboxes must be chosen
-# manually for now. There might be a computational way to choose them based on
-# concordex results.
-

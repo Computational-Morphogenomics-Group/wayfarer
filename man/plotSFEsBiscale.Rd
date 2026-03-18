@@ -6,7 +6,8 @@
 \usage{
 plotSFEsBiscale(
   sfes,
-  pair_use,
+  feature1,
+  feature2,
   df_lee,
   colGeometryName = 1L,
   bbox = NULL,
@@ -15,9 +16,8 @@ plotSFEsBiscale(
   swap_rownames = NULL,
   title = NULL,
   crop = TRUE,
-  swap_colors = FALSE,
   show_sizes = TRUE,
-  sep = "(?<!HLA)-",
+  sep = "_",
   ncol = NULL,
   nrow = NULL,
   samples_use = NULL,
@@ -31,7 +31,9 @@ plotSFEsBiscale(
 \arguments{
 \item{sfes}{A list of SFE objects, whose names must be the bin sizes.}
 
-\item{pair_use}{Gene pair to plot}
+\item{feature1}{First feature to plot}
+
+\item{feature2}{Second feature to plot}
 
 \item{df_lee}{Data frame from \code{\link{clusterLeeCurves}}, where Lee's L
 values are extracted to annotate the plot.}
@@ -41,7 +43,10 @@ whose numeric columns of interest are to be used to compute the metric. Use
 \code{\link{colGeometryNames}} to look up names of the \code{sf} data
 frames associated with cells/spots.}
 
-\item{bbox}{Bounding box to plot a subarea}
+\item{bbox}{Named numeric vector specifying a bounding box, either to zoom
+into a smaller area or to show the box itself. The names should be "xmin",
+"xmax", "ymin", and "ymax" in any order. The same bbox will be used for all
+SFE objects in \code{sfes}.}
 
 \item{palette}{Name of bivariate palette; see \code{\link[biscale]{bi_pal}}
 for complete list of built-in palettes in the `biscale` package.}
@@ -51,8 +56,11 @@ identify features instead of \code{rownames(object)} when labeling plot
 elements. If not found in \code{rowData}, then rownames of the gene count
 matrix will be used.}
 
-\item{swap_colors}{Logical, whether to swap the positions of the two genes
-in `pair_use` in the palette.}
+\item{crop}{Logical, whether to crop the samples by \code{bbox}. If
+\code{FALSE}, then the \code{bbox} will be shown as a box on the plot to
+indicate its location.}
+
+\item{sep}{Separator between the two gene symbols in \code{df_lee}}
 
 \item{ncol}{Number of columns if plotting multiple features. Defaults to
 \code{NULL}, which means using the same logic as \code{facet_wrap}, which
@@ -67,6 +75,10 @@ contract to match the aspect ratio of the content}
 \item{design}{Specification of the location of areas in the layout. Can either
 be specified as a text string or by concatenating calls to \code{\link[patchwork:area]{area()}} together.
 See the examples for further information on use.}
+
+\item{legend_index}{Index of position to place the legend. If \code{NULL},
+then the legend will not be shown. Unlike in univariate plots, the legend
+itself is a \code{ggplot2} object}
 }
 \value{
 A \code{patchwork} object.

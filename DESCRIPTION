@@ -17,6 +17,7 @@ Imports:
     alabaster.base,
     alabaster.sfe,
     arrow,
+    biscale,
     bluster,
     dplyr,
     ggplot2,

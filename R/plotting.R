@@ -36,6 +36,8 @@ ditto_colors <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E0
 #' @importFrom SingleCellExperiment logcounts
 #' @importFrom scales breaks_log
 #' @importFrom stats qnorm
+#' @importFrom ggplot2 ggplot geom_line aes scale_color_viridis_c
+#' scale_color_manual scale_x_continuous facet_wrap geom_ribbon labs
 #' @return A \code{ggplot} object.
 #' @export
 plotUnivariateCurves <- function(df, name = "moran", color_by = NULL, facet_by = NULL,
@@ -129,7 +131,7 @@ plotMoranCurves <- function(df, color_by = NULL, facet_by = NULL,
 #' @param ... Other arguments to pass to
 #'   \code{\link[Voyager]{plotSpatialFeature}}
 #' @importFrom Voyager plotSpatialFeature
-#' @importFrom ggplot2 ggtitle
+#' @importFrom ggplot2 ggtitle geom_sf
 #' @importFrom patchwork wrap_plots
 #' @return A \code{patchwork} object
 #' @export
@@ -235,6 +237,7 @@ plotLeeCurves <- function(df, facet_by = NULL, show_median = FALSE,
 #' @param pairs_use Which pairs to plot
 #' @param title Title of the plot
 #' @return A \code{ggplot2} oboject
+#' @importFrom ggplot2 geom_hline
 #' @export
 plotLeeSelect <- function(df_lees, lmm_res, pairs_use, title = NULL) {
     df <- df_lees |>
@@ -290,23 +293,33 @@ plotClusterMedians <- function(df, cluster_col) {
 #' @inheritParams Voyager::plotBivariate
 #' @inheritParams patchwork::plot_layout
 #' @param sfes A list of SFE objects, whose names must be the bin sizes.
-#' @param pair_use Gene pair to plot
-#' @param swap_colors Logical, whether to swap the positions of the two genes
-#' in `pair_use` in the palette.
 #' @param df_lee Data frame from \code{\link{clusterLeeCurves}}, where Lee's L
-#' values are extracted to annotate the plot.
+#'   values are extracted to annotate the plot.
+#' @param bbox Named numeric vector specifying a bounding box, either to zoom
+#'   into a smaller area or to show the box itself. The names should be "xmin",
+#'   "xmax", "ymin", and "ymax" in any order. The same bbox will be used for all
+#'   SFE objects in \code{sfes}.
+#' @param sep Separator between the two gene symbols in \code{df_lee}
+#' @param legend_index Index of position to place the legend. If \code{NULL},
+#'   then the legend will not be shown. Unlike in univariate plots, the legend
+#'   itself is a \code{ggplot2} object
+#' @param crop Logical, whether to crop the samples by \code{bbox}. If
+#'   \code{FALSE}, then the \code{bbox} will be shown as a box on the plot to
+#'   indicate its location.
 #' @return A \code{patchwork} object.
 #' @importFrom stringr str_split_fixed
+#' @importFrom Voyager plotBivariate
+#' @importFrom patchwork plot_spacer wrap_plots
+#' @importFrom biscale bi_legend
 #' @export
-plotSFEsBiscale <- function(sfes, pair_use, df_lee, colGeometryName = 1L,
+plotSFEsBiscale <- function(sfes, feature1, feature2, df_lee, colGeometryName = 1L,
                             bbox = NULL, palette = "BlueGold", exprs_value = "logcounts",
-                            swap_rownames = NULL, title = NULL, crop = TRUE, swap_colors = FALSE,
-                            show_sizes = TRUE, sep = "(?<!HLA)-", ncol = NULL, nrow = NULL,
+                            swap_rownames = NULL, title = NULL, crop = TRUE,
+                            show_sizes = TRUE, sep = "_", ncol = NULL, nrow = NULL,
                             samples_use = NULL, side_use = NULL, widths = NULL,
                             heights = NULL, design = NULL, legend_index = NULL) {
     # Need to show Lee's L values and side lengths
-    genes <- str_split(pair_use, pattern = sep, simplify = TRUE) |> as.vector()
-    if (swap_colors) genes <- rev(genes)
+    pair_use <- paste(sort(c(feature1, feature2)), collapse = sep)
     if (!show_sizes) {
         if (length(samples_use) != length(sfes)) stop("samples_use must have the same length as sfes")
         if (is.null(side_use) && "side" %in% names(df_lee)) stop("side_use must be specified")
@@ -332,11 +345,11 @@ plotSFEsBiscale <- function(sfes, pair_use, df_lee, colGeometryName = 1L,
         }
         p <- if (crop || is.null(bbox)) {
             if (is.matrix(bbox)) bbox_use <- bbox[,i] else bbox_use <- bbox
-            .gene_biscale(sfes[[i]], genes[1], genes[2], bbox = bbox_use, swap_rownames = swap_rownames,
+            plotBivariate(sfes[[i]], feature1, feature2, bbox = bbox_use, swap_rownames = swap_rownames,
                           palette = palette, exprs_value = exprs_value, colGeometryName = colGeometryName)
         } else {
             if (is.matrix(bbox)) bbox_use <- bbox[,i] else bbox_use <- bbox
-            .gene_biscale(sfes[[i]], genes[1], genes[2], bbox = NULL, swap_rownames = swap_rownames,
+            plotBivariate(sfes[[i]], feature1, feature2, bbox = NULL, swap_rownames = swap_rownames,
                           palette = palette, exprs_value = exprs_value, colGeometryName = colGeometryName) +
 
                 geom_sf(data = st_as_sfc(st_bbox(bbox_use)), linewidth = 0.5, fill = NA)
@@ -345,10 +358,10 @@ plotSFEsBiscale <- function(sfes, pair_use, df_lee, colGeometryName = 1L,
             theme(plot.title = element_text(vjust = 0, hjust = 0.5))
     })
     if (!is.null(legend_index)) {
-        legend <- bi_legend(pal = "BlueGold",
+        legend <- bi_legend(pal = palette,
                             dim = 4,
-                            xlab = genes[1],
-                            ylab = genes[2],
+                            xlab = feature1,
+                            ylab = feature2,
                             size = 14) +
             plot_spacer()
         plts <- c(plts[1:(legend_index-1)], wrap_elements(legend), plts[legend_index:length(plts)])

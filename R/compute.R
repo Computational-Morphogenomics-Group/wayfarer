@@ -31,6 +31,7 @@
 #' @importFrom SpatialFeatureExperiment sampleIDs
 #' @importFrom dplyr mutate bind_rows
 #' @importFrom tidyr pivot_longer unite
+#' @export
 runBinAnalyses <- function(dir, out_dir, tissue_geometry,
                            min_props = 0.9, quantiles = NULL,
                            ncomponents = 30, queen = FALSE,
