@@ -14,6 +14,7 @@ runBinAnalyses(
   queen = FALSE,
   zero.policy = TRUE,
   p.adjust.method = "BH",
+  neg_regex = c("^NegPrb", "^Blank", "^BLANK", "^NegControl", "Unassigned"),
   BPPARAM = SerialParam(),
   ...
 )
@@ -48,6 +49,11 @@ supercede \code{min_props}.}
 \code{\link[spdep]{p.adjustSP}}. Methods allowed are in
 \code{\link{p.adjust.methods}}.}
 
+\item{neg_regex}{Character vector of regex patterns indicating that a feature
+is for negative control. Features matching any of these patterns will be
+removed prior to analyses. Counts of these features are kept in the
+aggregated input data in \code{dir}.}
+
 \item{BPPARAM}{A \code{\link{BiocParallelParam}} object specifying whether
 and how computing the metric for numerous genes shall be parallelized.}
 
@@ -63,7 +69,8 @@ Invisibly \code{out_dir}; the log normalization, QC, PCA, adjacency
   graph, and Moran's I will be stored in the SFE object; the SFE object with
   the results will be written to \code{out_dir} with directory names
   "binx_esda". A data frame for Moran's I and  Lee's L across bin sizes will
-  be written to \code{out_dir} as CSV files.
+  be written to \code{out_dir} as CSV files. The "esda" means that
+  exploratory spatial data analysis (ESDA) has been performed.
 }
 \description{
 This function runs log normalization, bin-level QC, PCA, adjacency graph,
