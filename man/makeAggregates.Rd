@@ -10,11 +10,12 @@ makeAggregates(
   sides = sort(c(2^(3:8), 12 * 2^(0:5))),
   sample_id = "sample01",
   tech = c("other", "Vizgen", "Xenium", "CosMX"),
-  spatialCoordsNames = c("X", "Y", "Z"),
+  spatialCoordsNames = c("X", "Y"),
   gene_col = "gene",
   phred_col = "qv",
   min_phred = 20,
   tissue_boundary = NULL,
+  flip_geometry = TRUE,
   BPPARAM = SerialParam(),
   tx_parquet_path = NULL,
   ...
@@ -57,10 +58,19 @@ boundary will be used to remove bins that don't overlap with tissue. If QC
 is not performed before aggregation, then you'll have to remove debris in
 every single aggregation.}
 
+\item{flip_geometry}{Logical, whether to flip the transcript spot geometries
+to match the images if added later.}
+
 \item{BPPARAM}{bpparam object to specify parallel computing over genes. If a
 lot of memory is used, then stick to `SerialParam()`. Using multicore in
 the R level when `save_memory = TRUE` works and results into faster
 computation.}
+
+\item{tx_parquet_path}{If the input is not a Parquet file (e.g. a CSV file),
+it will be re-formatted into a multi-file Parquet to improve speed of
+computation. The reformatted files can be written to a path specified in
+this argument. If it's \code{NULL}, then the multi-file Parquet will be
+written to a temporary directory.}
 
 \item{...}{Other arguments passed to
 \code{\link[SpatialFeatureExperiment]{aggregateTx}}. This excludes

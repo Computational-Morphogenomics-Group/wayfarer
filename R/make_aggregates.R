@@ -31,6 +31,11 @@
 #' @param ... Other arguments passed to
 #'   \code{\link[SpatialFeatureExperiment]{aggregateTx}}. This excludes
 #'   \code{cellsize} and \code{save_memory}.
+#' @param tx_parquet_path If the input is not a Parquet file (e.g. a CSV file),
+#'   it will be re-formatted into a multi-file Parquet to improve speed of
+#'   computation. The reformatted files can be written to a path specified in
+#'   this argument. If it's \code{NULL}, then the multi-file Parquet will be
+#'   written to a temporary directory.
 #' @return Invisibly the output directory; the output is written to disk with
 #'   \code{alabaster.sfe} as on disk serializations of
 #'   \code{SpatialFeatureExperiment} objects, with one object for each bin size.
@@ -51,20 +56,24 @@ makeAggregates <- function(tx_file, out_path,
                            sides = sort(c(2^(3:8), 12*2^(0:5))),
                            sample_id = "sample01",
                            tech = c("other", "Vizgen", "Xenium", "CosMX"),
-                           spatialCoordsNames = c("X", "Y", "Z"),
+                           spatialCoordsNames = c("X", "Y"),
                            gene_col = "gene", phred_col = "qv", min_phred = 20,
-                           tissue_boundary = NULL,
+                           tissue_boundary = NULL, flip_geometry = TRUE,
                            BPPARAM = SerialParam(), tx_parquet_path = NULL, ...) {
     tx_file <- normalizePath(tx_file, mustWork = TRUE)
     out_path <- normalizePath(out_path, mustWork = FALSE)
+    tech <- match.arg(tech)
     if (!dir.exists(out_path)) dir.create(out_path)
-    if (!is.null(tissue_boundary) && !class(tissue_boundary) %in% c("sf", "sfc", "sfg")) {
+    if (!is.null(tissue_boundary) && !any(class(tissue_boundary) %in% c("sf", "sfc", "sfg"))) {
         stop("tissue_boundary must be sf, sfc, or sfg")
     }
-
+    if (tech != "other") {
+        c(spatialCoordsNames, gene_col, cell_col, fn) %<-%
+            getTechTxFields(tech, NULL)
+    }
     is_parquet <- grepl("\\.parquet$", tx_file) |
-        (dir.exists(tx_files) &
-             all(grepl("\\.parquet$", list.files(tx_files, recursive = TRUE,
+        (dir.exists(tx_file) &
+             all(grepl("\\.parquet$", list.files(tx_file, recursive = TRUE,
                                                  include.dirs = FALSE))))
 
     # Convert to multi-file parquet
@@ -75,32 +84,21 @@ makeAggregates <- function(tx_file, out_path,
             fp <- normalizePath(tx_parquet_path, mustWork = FALSE)
             if (!dir.exists(fp)) dir.create(fp)
         }
-        if (tech != "other") {
-            c(spatialCoordsNames, gene_col, cell_col, fn) %<-%
-                getTechTxFields(tech, NULL)
-        }
-        orig_format <- file_ext(tx_file)
-        ds <- open_dataset(tx_file, format = "csv")
-        ds <- ds |>
-            select(gene = {{gene_col}}, x = {{spatialCoordNames[1]}},
-                   y = {{spatialCoordNames[2]}}) |>
-            group_by(gene)
-        if (phred_col %in% names(ds)) {
-            ds <- df |>
-                filter(.data[[phred_col]] > min_phred)
-        }
-        write_dataset(ds, path = fp)
-        rm(ds)
+        toMultifileParquet(tx_file, tx_parquet_path = fp, tech = tech,
+                           spatialCoordsNames = spatialCoordsNames,
+                           gene_col = gene_col, phred_col = phred_col,
+                           min_phred = min_phred)
     } else fp <- tx_file
 
     for (s in sides) {
         cat("Processing", s, "\n")
         sfe <- aggregateTx(fp, cellsize = s, sample_id = sample_id,
-                           spatialCoordsNames = c("x", "y"),
-                           save_memory = TRUE, ...)
+                           spatialCoordsNames = spatialCoordsNames[1:2],
+                           flip_geometry = flip_geometry,
+                           save_memory = TRUE, BPPARAM = BPPARAM, ...)
         if (!is.null(tissue_boundary))
             sfe <- crop(sfe, tissue_boundary, keep_whole = "col")
-        saveObject(sfe, out_path)
+        saveObject(sfe, file.path(out_path, paste0("bin", s)))
         gc()
     }
     invisible(out_path)
@@ -132,11 +130,11 @@ getBinOverlapProp <- function(sfe, tissue_geometry, BPPARAM = SerialParam(),
     bins$batch <- ceiling(bins$index/batch_size)
     AREA <- st_area(st_geometry(bins)[1]) # should be the same for all bins
     areas <- bplapply(unique(bins$batch), function(i) {
-        g <- bins$geometry[bins$batch == i & inds_comp]
+        g <- st_geometry(bins)[bins$batch == i]
         out <- numeric(length(g))
         xc <- st_union(tissue_geometry$geometry[st_intersects(st_as_sfc(st_bbox(g)), tissue_geometry, sparse = FALSE)])
-        out[st_covered_by(bins, tissue_geometry, sparse = FALSE) |> as.vector()] <- AREA
-        inds_comp <- st_overlaps(g, tissue_geometry, sparse = FALSE) |> as.vector()
+        out[st_covered_by(g, xc, sparse = FALSE) |> as.vector()] <- AREA
+        inds_comp <- st_overlaps(g, xc, sparse = FALSE) |> as.vector()
         out[inds_comp] <- st_area(st_intersection(g, xc))
         out
     }, BPPARAM = BPPARAM) |> unlist()

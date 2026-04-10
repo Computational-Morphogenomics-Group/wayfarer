@@ -24,6 +24,7 @@ Imports:
     ggplot2,
     lme4,
     lmerTest,
+    Matrix,
     patchwork,
     rlang,
     scales,
@@ -39,8 +40,11 @@ Imports:
     tools,
     Voyager (>= 1.13.1)
 Suggests:
-    igraph
+    igraph,
+    knitr,
+    rmarkdown
 biocViews:
     Transcriptomics,
     Spatial
 RoxygenNote: 7.3.3
+VignetteBuilder: knitr

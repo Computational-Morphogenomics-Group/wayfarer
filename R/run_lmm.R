@@ -13,8 +13,9 @@
 #' @param df_res A data frame with Moran's I or Lee's L across bin sizes and
 #'   samples, such as from \code{\link{readMoranSamples}} or
 #'   \code{\link{readLeeSamples}}. The columns should be renamed so that the
-#'   gene or gene pair column is named "feature" and the group column from
-#'   additional sample info is named "group".
+#'   gene or gene pair column is named "feature", the Moran's I or Lee's L
+#'   values column is named "value", and the group column from additional sample
+#'   info is named "group".
 #' @param BPPARAM A \code{bpparam} object to parallelize computation over
 #'   features.
 #' @return A data frame with p-values and adjusted p-values for each feature

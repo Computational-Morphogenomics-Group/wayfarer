@@ -6,7 +6,7 @@
 \usage{
 runBinAnalyses(
   dir,
-  out_dir,
+  out_path,
   tissue_geometry,
   min_props = 0.9,
   quantiles = NULL,
@@ -65,11 +65,11 @@ name as specified in \code{type} in the \code{spdep} package for the method
 specific arguments. For variograms, see \code{\link[Voyager]{.variogram}}.}
 }
 \value{
-Invisibly \code{out_dir}; the log normalization, QC, PCA, adjacency
+Invisibly \code{out_path}; the log normalization, QC, PCA, adjacency
   graph, and Moran's I will be stored in the SFE object; the SFE object with
-  the results will be written to \code{out_dir} with directory names
+  the results will be written to \code{out_path} with directory names
   "binx_esda". A data frame for Moran's I and  Lee's L across bin sizes will
-  be written to \code{out_dir} as CSV files. The "esda" means that
+  be written to \code{out_path} as CSV files. The "esda" means that
   exploratory spatial data analysis (ESDA) has been performed.
 }
 \description{

@@ -24,11 +24,11 @@
 #'   is for negative control. Features matching any of these patterns will be
 #'   removed prior to analyses. Counts of these features are kept in the
 #'   aggregated input data in \code{dir}.
-#' @return Invisibly \code{out_dir}; the log normalization, QC, PCA, adjacency
+#' @return Invisibly \code{out_path}; the log normalization, QC, PCA, adjacency
 #'   graph, and Moran's I will be stored in the SFE object; the SFE object with
-#'   the results will be written to \code{out_dir} with directory names
+#'   the results will be written to \code{out_path} with directory names
 #'   "binx_esda". A data frame for Moran's I and  Lee's L across bin sizes will
-#'   be written to \code{out_dir} as CSV files. The "esda" means that
+#'   be written to \code{out_path} as CSV files. The "esda" means that
 #'   exploratory spatial data analysis (ESDA) has been performed.
 #' @importFrom scater logNormCounts runPCA addPerCellQC
 #' @importFrom Voyager runMoransI calculateBivariate
@@ -37,7 +37,7 @@
 #' @importFrom dplyr mutate bind_rows
 #' @importFrom tidyr pivot_longer unite
 #' @export
-runBinAnalyses <- function(dir, out_dir, tissue_geometry,
+runBinAnalyses <- function(dir, out_path, tissue_geometry,
                            min_props = 0.9, quantiles = NULL,
                            ncomponents = 30, queen = FALSE,
                            zero.policy = TRUE, p.adjust.method = "BH",
@@ -51,26 +51,26 @@ runBinAnalyses <- function(dir, out_dir, tissue_geometry,
     if (!length(bins_dir)) {
         stop("Binned output should be in directories named bin<x> such as bin12")
     }
-    out_dir <- normalizePath(out_dir, mustWork = FALSE)
-    if (!dir.exists(out_dir)) dir.create(out_dir)
+    out_path <- normalizePath(out_path, mustWork = FALSE)
+    if (!dir.exists(out_path)) dir.create(out_path)
     bin_sizes <- gsub("bin", "", basename(bins_dir))
     if (is.null(quantiles)) {
-        if (!is.numeric(min_props) || (length(min_props)!=1L || length(min_props)!=length(bins_dir))) {
+        if (!is.numeric(min_props) || (length(min_props)!=1L && length(min_props)!=length(bins_dir))) {
             stop("min_props must be a numeric vector of either length 1 or same length as the number of bin sizes")
         }
         if (length(min_props) > 1L) {
-            if (!setequal(bin_sizes, names(min_props))) {
+            if (!setequal(as.character(bin_sizes), names(min_props))) {
                 stop("min_props must have the same names as bin sizes")
             }
         } else {
             min_props <- setNames(rep(min_props, length(bin_sizes)), bin_sizes)
         }
     } else {
-        if (!is.numeric(quantiles) || (length(quantiles)!=1L || length(quantiles)!=length(bins_dir))) {
+        if (!is.numeric(quantiles) || (length(quantiles)!=1L && length(quantiles)!=length(bins_dir))) {
             stop("quantiles must be a numeric vector of either length 1 or same length as the number of bin sizes")
         }
         if (length(quantiles) > 1L) {
-            if (!setequal(bin_sizes, names(quantiles))) {
+            if (!setequal(as.character(bin_sizes), names(quantiles))) {
                 stop("quantiles must have the same names as bin sizes")
             }
         } else {
@@ -78,7 +78,7 @@ runBinAnalyses <- function(dir, out_dir, tissue_geometry,
         }
     }
     lees_out <- list()
-    moran_out <- list()
+    morans_out <- list()
     for (i in seq_along(bins_dir)) {
         d <- bins_dir[i]
         cat("Reading", basename(d), "\n")
@@ -90,34 +90,37 @@ runBinAnalyses <- function(dir, out_dir, tissue_geometry,
         sfe <- removeEdgeBins(sfe, overlap_props, min_prop = min_props[bin_sizes[i]],
                               quantile = quantiles[bin_sizes[i]])
         # Remove negative control features
-        pattern <- paste(neg_regex, sep = "|")
+        pattern <- paste(neg_regex, collapse = "|")
         sfe <- sfe[!grepl(pattern, rownames(sfe)),]
-        sfe <- sfe[,colSums(counts(sfe)) > 0]
+        sfe <- sfe[,Matrix::colSums(counts(sfe)) > 0]
         cat("Normalizing data\n")
         sfe <- addPerCellQC(sfe)
         sfe <- logNormCounts(sfe)
         cat("Running PCA\n")
         sfe <- runPCA(sfe, ncomponents = ncomponents, scale = TRUE)
         cat("Running Moran's I\n")
+        colGraph(sfe, "poly2nb") <- findSpatialNeighbors(sfe, type = "bins",
+                                                         method = "poly2nb", queen = queen)
         sfe <- runMoransI(sfe, zero.policy = zero.policy, BPPARAM = BPPARAM)
         nm <- paste("moran", sampleIDs(sfe), sep = "_")
         morans_out[[bin_sizes[i]]] <- data.frame(moran = rowData(sfe)[[nm]],
+                                                 gene = rownames(sfe),
                                                  side = bin_sizes[i] |> as.integer())
         cat("Saving SFE basis analysis\n")
-        saveObject(sfe, file.path(out_dir, paste(basename(d), "esda", sep = "_")))
+        saveObject(sfe, file.path(out_path, paste(basename(d), "esda", sep = "_")))
         cat("Running Lee's L\n")
         lees_out[[bin_sizes[i]]] <- calculateBivariate(sfe, "lee", feature1 = rownames(sfe))
     }
     # Re-format all the Moran's I results into a data frame
     df_moran <- bind_rows(morans_out)
-    morans_out$sample <- sampleIDs(sfe)
+    df_moran$sample <- sampleIDs(sfe)
     df_lee <- .get_df_lee(lees_out)
     df_lee$sample <- sampleIDs(sfe)
-    write.csv(df_moran, file.path(out_dir, "df_moran.csv"), quote = FALSE, col.names = TRUE,
+    write.csv(df_moran, file.path(out_path, "df_moran.csv"), quote = FALSE,
               row.names = FALSE)
-    write.csv(df_lee, file.path(out_dir, "df_lee.csv"), quote = FALSE, col.names = TRUE,
+    write.csv(df_lee, file.path(out_path, "df_lee.csv"), quote = FALSE,
               row.names = FALSE)
-    invisible(out_dir)
+    invisible(out_path)
 }
 
 .get_pairs_df <- function(lees) {
@@ -150,5 +153,5 @@ runBinAnalyses <- function(dir, out_dir, tissue_geometry,
     }
     df_lee <- .get_pairs_df(lees)
     df_lee |>
-        pivot_longer(-pair, names_to = "name", values_to = "value")
+        pivot_longer(-pair, names_to = "side", values_to = "lee")
 }

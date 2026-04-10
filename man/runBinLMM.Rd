@@ -10,8 +10,9 @@ runBinLMM(df_res, degree = 2, BPPARAM = SerialParam())
 \item{df_res}{A data frame with Moran's I or Lee's L across bin sizes and
 samples, such as from \code{\link{readMoranSamples}} or
 \code{\link{readLeeSamples}}. The columns should be renamed so that the
-gene or gene pair column is named "feature" and the group column from
-additional sample info is named "group".}
+gene or gene pair column is named "feature", the Moran's I or Lee's L
+values column is named "value", and the group column from additional sample
+info is named "group".}
 
 \item{degree}{degree of the piecewise polynomial---default is \code{3} for
     cubic splines.}
