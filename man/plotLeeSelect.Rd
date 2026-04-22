@@ -7,7 +7,8 @@
 plotLeeSelect(df_lees, lmm_res, pairs_use, title = NULL)
 }
 \arguments{
-\item{df_lees}{Data frame with Lee's L results}
+\item{df_lees}{Data frame with Lee's L results, same column names as in \code{df_res} in
+\code{\link{runBinLMM}}.}
 
 \item{lmm_res}{Linear mixed model results data frame}
 

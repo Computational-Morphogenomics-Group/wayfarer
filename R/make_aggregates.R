@@ -88,13 +88,15 @@ makeAggregates <- function(tx_file, out_path,
                            spatialCoordsNames = spatialCoordsNames,
                            gene_col = gene_col, phred_col = phred_col,
                            min_phred = min_phred)
+        spatialCoordsNames <- c("x", "y")
+        gene_col <-  "gene"
     } else fp <- tx_file
 
     for (s in sides) {
         cat("Processing", s, "\n")
         sfe <- aggregateTx(fp, cellsize = s, sample_id = sample_id,
                            spatialCoordsNames = spatialCoordsNames[1:2],
-                           flip_geometry = flip_geometry,
+                           flip_geometry = flip_geometry, gene_col = gene_col,
                            save_memory = TRUE, BPPARAM = BPPARAM, ...)
         if (!is.null(tissue_boundary))
             sfe <- crop(sfe, tissue_boundary, keep_whole = "col")
@@ -132,7 +134,7 @@ getBinOverlapProp <- function(sfe, tissue_geometry, BPPARAM = SerialParam(),
     areas <- bplapply(unique(bins$batch), function(i) {
         g <- st_geometry(bins)[bins$batch == i]
         out <- numeric(length(g))
-        xc <- st_union(tissue_geometry$geometry[st_intersects(st_as_sfc(st_bbox(g)), tissue_geometry, sparse = FALSE)])
+        xc <- st_union(st_geometry(tissue_geometry)[st_intersects(st_as_sfc(st_bbox(g)), tissue_geometry, sparse = FALSE)])
         out[st_covered_by(g, xc, sparse = FALSE) |> as.vector()] <- AREA
         inds_comp <- st_overlaps(g, xc, sparse = FALSE) |> as.vector()
         out[inds_comp] <- st_area(st_intersection(g, xc))

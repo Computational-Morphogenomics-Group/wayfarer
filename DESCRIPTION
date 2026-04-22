@@ -9,28 +9,30 @@ Authors@R: c(
   )
 Description: This package performs spatial binning at different resolutions and
     compares Voyager spatial analysis results across the resolutions. Plotting
-    functions across resolutions are implemented. Comparison across both scales
-    and samples is under development.
+    functions across resolutions are implemented. Linear mixed models are used
+    to compare across biological conditions when there are multiple samples per
+    condition.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
     alabaster.base,
     alabaster.sfe,
     arrow,
+    BiocFileCache,
     BiocParallel,
     biscale,
     bluster,
     dplyr,
     ggplot2,
-    lme4,
     lmerTest,
     Matrix,
+    osfr,
     patchwork,
     rlang,
     scales,
     scico,
     SingleCellExperiment,
-    SpatialFeatureExperiment (>= 1.13.1),
+    SpatialFeatureExperiment (>= 1.13.2),
     SummarizedExperiment,
     spdep,
     stats,
@@ -45,6 +47,11 @@ Suggests:
     rmarkdown
 biocViews:
     Transcriptomics,
-    Spatial
+    Spatial,
+    GeneExpression, 
+    SingleCell
 RoxygenNote: 7.3.3
 VignetteBuilder: knitr
+Depends: 
+    R (>= 3.5)
+LazyData: true

@@ -75,9 +75,9 @@ readMoranSamples <- function(dirs, sample_info = NULL) {
     }
     if (!is.null(sample_info)) {
         stopifnot(is.data.frame(sample_info))
-        stopifnow("sample" %in% names(sample_info))
+        stopifnot("sample" %in% names(sample_info))
     }
-    dfs <- lapply(fps, read.csv, col.names = TRUE)
+    dfs <- lapply(fps, read.csv)
     out <- bind_rows(dfs)
     if (!is.null(sample_info)) {
         out <- out |> left_join(sample_info, by = "sample")
@@ -113,9 +113,9 @@ readLeeSamples <- function(dirs, sample_info = NULL, cutoff = 0L) {
     }
     if (!is.null(sample_info)) {
         stopifnot(is.data.frame(sample_info))
-        stopifnow("sample" %in% names(sample_info))
+        stopifnot("sample" %in% names(sample_info))
     }
-    dfs <- lapply(fps, read.csv, col.names = TRUE)
+    dfs <- lapply(fps, read.csv)
     out <- bind_rows(dfs)
     if (cutoff > 0L) {
         pairs_use <- out |>

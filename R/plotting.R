@@ -164,13 +164,14 @@ plotSFEs <- function(sfes, feature, bbox = NULL, title = NULL,
                     geom_sf(data = st_as_sfc(st_bbox(bbox)), linewidth = 1, fill = NA)
             }
         }
+        moran_name <- paste("moran", sampleIDs(sfes[[i]]), sep = "_")
         if (show_sizes) {
             tt <- paste0(names(sfes)[[i]], " μm, I = ",
-                         format(rowData(sfes[[i]])[feature1, "moran_sample01"],
+                         format(rowData(sfes[[i]])[feature1, moran_name],
                                 digits = 3))
         } else {
             tt <- paste0(names(sfes)[[i]], ", I = ",
-                         format(rowData(sfes[[i]])[feature1, "moran_sample01"],
+                         format(rowData(sfes[[i]])[feature1, moran_name],
                                 digits = 3))
         }
         if (!is.null(title) && i == 1L) {
@@ -232,7 +233,8 @@ plotLeeCurves <- function(df, facet_by = NULL, show_median = FALSE,
 #'
 #' Also annotate with relevant linear mixed model info
 #'
-#' @param df_lees Data frame with Lee's L results
+#' @param df_lees Data frame with Lee's L results, same column names as in \code{df_res} in
+#' \code{\link{runBinLMM}}.
 #' @param lmm_res Linear mixed model results data frame
 #' @param pairs_use Which pairs to plot
 #' @param title Title of the plot
@@ -241,21 +243,21 @@ plotLeeCurves <- function(df, facet_by = NULL, show_median = FALSE,
 #' @export
 plotLeeSelect <- function(df_lees, lmm_res, pairs_use, title = NULL) {
     df <- df_lees |>
-        filter(pair %in% pairs_use) |>
-        left_join(lmm_res, by = "pair")
+        filter(feature %in% pairs_use) |>
+        left_join(lmm_res, by = "feature")
     if ("type" %in% names(lmm_res))
         df <- df |>
-            mutate(label = paste0(pair, " (", type, ")"))
+            mutate(label = paste0(feature, " (", type, ")"))
     else df <- df |> dplyr::filter(p_random_adj < 0.05)
-    p <- ggplot(df, aes(side, value, group = sample, color = stage)) +
+    p <- ggplot(df, aes(side, value, group = sample, color = group)) +
         geom_line() +
         geom_hline(color = "gray", yintercept = 0, linetype = 2) +
         scale_x_continuous(transform = "log2", breaks = scales::breaks_log(n = 10, base = 2)) +
-        scale_color_manual(values = ditto_colors[c(27,2,7,1)]) +
+        scale_color_manual(values = ditto_colors) +
         labs(x = "Bin size (μm)", y = "Lee's L", color = "Stage", title = title)
     if ("type" %in% names(lmm_res))
         p <- p + facet_wrap(~ label)
-    else p <- p + facet_wrap(~ pair)
+    else p <- p + facet_wrap(~ feature)
     p
 }
 

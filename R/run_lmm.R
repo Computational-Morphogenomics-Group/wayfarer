@@ -20,8 +20,7 @@
 #'   features.
 #' @return A data frame with p-values and adjusted p-values for each feature
 #' @importFrom splines bs
-#' @importFrom lme4 lmer
-#' @importFrom lmerTest ranova
+#' @importFrom lmerTest ranova lmer
 #' @importFrom dplyr group_nest across
 #' @importFrom tidyr unnest pivot_wider
 #' @export
@@ -37,17 +36,14 @@ runBinLMM <- function(df_res, degree = 2, BPPARAM = SerialParam()) {
                 res_slope <- ranova(s1, reduce.terms = TRUE)
                 res_int <- ranova(s1, reduce.terms = FALSE)
                 res_main <- anova(s1)
-                res2 <- anova(s1)
-                list(p_slope = res_slope$`Pr(>Chisq)`[2],
-                     p_intercept = res_int$`Pr(>Chisq)`[2],
-                     p_main = res_main$`Pr(>F)`)
+                tibble(p_slope = res_slope$`Pr(>Chisq)`[2],
+                       p_random = res_int$`Pr(>Chisq)`[2],
+                       p_main = res_main$`Pr(>F)`)
             }, BPPARAM = BPPARAM))
     df_res2 <- df_res2 |>
-        select(pair, pvals) |>
+        select(feature, pvals) |>
         unnest(pvals)
     df_res2 <- df_res2 |>
-        mutate(type = names(pvals), pvals = unlist(pvals) |> unname())
-        pivot_wider(names_from = "type", values_from = "pvals") |>
         mutate(across(starts_with("p_"), ~ p.adjust(.x, method = "BH"), .names = "{.col}_adj"),
                across(ends_with("_adj"), ~ -log10(.x), .names = "log_{.col}"))
     df_res2

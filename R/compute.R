@@ -31,6 +31,7 @@
 #'   be written to \code{out_path} as CSV files. The "esda" means that
 #'   exploratory spatial data analysis (ESDA) has been performed.
 #' @importFrom scater logNormCounts runPCA addPerCellQC
+#' @importFrom SingleCellExperiment counts counts<-
 #' @importFrom Voyager runMoransI calculateBivariate
 #' @importFrom alabaster.base readObject
 #' @importFrom SpatialFeatureExperiment sampleIDs
@@ -89,12 +90,17 @@ runBinAnalyses <- function(dir, out_path, tissue_geometry,
                                            batch_size = bs)
         sfe <- removeEdgeBins(sfe, overlap_props, min_prop = min_props[bin_sizes[i]],
                               quantile = quantiles[bin_sizes[i]])
+        if (ncol(sfe) < 10) {
+            warning("Fewer than 10 bins left, halting analysis")
+            next
+        }
         # Remove negative control features
         pattern <- paste(neg_regex, collapse = "|")
         sfe <- sfe[!grepl(pattern, rownames(sfe)),]
-        sfe <- sfe[,Matrix::colSums(counts(sfe)) > 0]
         cat("Normalizing data\n")
+        counts(sfe) <- as(counts(sfe), "CsparseMatrix")
         sfe <- addPerCellQC(sfe)
+        sfe <- sfe[,sfe$sum > 0]
         sfe <- logNormCounts(sfe)
         cat("Running PCA\n")
         sfe <- runPCA(sfe, ncomponents = ncomponents, scale = TRUE)

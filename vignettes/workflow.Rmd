@@ -1,0 +1,248 @@
+---
+title: "workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Introduction
+
+In this vignette, we apply the multi-scale spatial analysis workflow as shown in the [Wayfarer paper](https://www.biorxiv.org/content/10.64898/2026.02.16.706245v1.abstract), but on a different dataset. This Xenium dataset is from the paper [The mechanotransducer Piezo1 coordinates metabolism and inflammation to promote skin growth](https://www.nature.com/articles/s41467-025-62270-3), which investigates glycolysis and inflammation in mouse skin expansion, mediated by Piezo1. Skin expansion was performed by injecting saline into a subdermal implant. This is relevant because skin expansion occurs in pregnancy and obesity, and is performed to create more skin for skin grafting. This dataset has two samples (I believe biological replica) per condition:
+
+* Non-expanded -- the implants were inserted but not expanded
+* Expanded, 14 days post inflation (PI14)
+* Expanded control (PI7)
+* Expanded skin with topical Yoda1 treatment (PI7) which activates Piezo1
+
+In this vignette, we perform a multi-scale spatial analysis with Wayfarer to identify genes and gene co-expression whose multi-scale spatial patterns differ across conditions.
+
+```{r setup, message=FALSE}
+#library(Wayfarer)
+library(Voyager)
+library(SpatialFeatureExperiment)
+library(sf)
+library(BiocParallel)
+library(alabaster.sfe)
+library(tidyverse)
+library(scater)
+theme_set(theme_bw())
+```
+
+# Single sample
+
+First, we apply spatial aggregation of various bin sizes to one sample and perform some basic analyses. You can do the same analyses and visualizations on all the other samples. The tissue boundary was computed from a concave hull of cell centroids. See `SpatialFeatureExperiment::`
+```{r}
+tb <- readRDS("../expanded1_tb.rds")
+plot(tb)
+```
+
+```{r}
+sides <- sort(c(2^(3:8), 12 * 2^(0:4)))
+```
+
+```{r}
+makeAggregates("../expanded1.csv.gz",
+               out_path = "expanded1", sample_id = "expanded1",
+               tech = "Xenium", tissue_boundary = tb, sides = sides,
+               flip_geometry = FALSE,
+               square = FALSE, BPPARAM = MulticoreParam(4, progressbar = TRUE))
+```
+
+```{r}
+min_props <- c(0.9, 0.9, 0.85, 0.85, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.3)
+names(min_props) <- sides
+```
+
+```{r}
+runBinAnalyses("expanded1", "expanded1/bin_analyses", tissue_geometry = tb,
+               min_props = min_props,
+               BPPARAM = MulticoreParam(4, progressbar = TRUE))
+```
+
+```{r}
+sfe <- readObject("expanded1/bin_analyses/bin16_esda/")
+```
+
+```{r}
+ElbowPlot(sfe)
+```
+
+```{r, fig.width=9, fig.height=9}
+plotReducedDim(sfe, "PCA", ncomponents = 4) + geom_density2d()
+```
+
+That circle in PC1 and PC2 looks interesting
+
+```{r}
+plotDimLoadings(sfe)
+```
+
+Rotate the tissue to save space when plotting
+```{r}
+sfe <- rotateMinRect(sfe)
+```
+
+```{r, fig.width=9, fig.height=3}
+plotSpatialFeature(sfe, "Col17a1")
+```
+
+```{r, fig.width=12, fig.height=7}
+spatialReducedDim(sfe, "PCA", ncomponents = 4, ncol = 1, divergent = TRUE, diverge_center = 0)
+```
+
+```{r}
+df_moran <- read_csv("expanded1/bin_analyses/df_moran.csv")
+```
+
+```{r}
+plotMoranCurves(df_moran)
+```
+
+```{r}
+df_lee <- read_csv("expanded1/bin_analyses/df_lee.csv")
+```
+
+```{r}
+plotLeeCurves(df_lee, sample_n = 1000)
+```
+
+Cluster Moran's I curves (refactor code)
+
+Cluster Lee's L curves
+
+Plot different resolutions
+```{r}
+sfes <- readBins("expanded1/bin_analyses/", sides = c(24, 48, 96, 192))
+```
+
+```{r}
+for (i in seq_along(sfes)) {
+    sfes[[i]] <- rotateMinRect(sfes[[i]])
+}
+```
+
+```{r, fig.width=12, fig.height=7}
+plotSFEs(sfes, "Col17a1", show_sizes = TRUE, ncol = 1)
+```
+
+```{r, fig.width=9, fig.height=7}
+plotSFEsBiscale(sfes, "Col17a1", "Krt5", df_lee = df_lee, ncol = 1)
+```
+
+# Multiple samples
+
+```{r}
+sample_info <- tribble(~sample, ~condition,
+                       "expanded1", "PI14",
+                       "expanded2", "PI14",
+                       "expanded1_pi7", "PI7",
+                       "expanded2_pi7", "PI7",
+                       "nonexpanded1", "non-expanded",
+                       "nonexpanded2", "non-expanded",
+                       "yoda1", "Yoda1",
+                       "yoda2", "Yoda1")
+```
+
+Run the same thing for all the other samples
+
+```{r}
+run_wayfarer <- function(sample) {
+    tb <- readRDS(paste0("../", sample, "_tb.rds"))
+    makeAggregates(paste0("../", sample, ".csv.gz"),
+               out_path = sample, sample_id = sample,
+               tech = "Xenium", tissue_boundary = tb, sides = sides,
+               flip_geometry = FALSE,
+               square = FALSE, BPPARAM = MulticoreParam(4, progressbar = TRUE))
+    runBinAnalyses(sample, file.path(sample, "bin_analyses"), tissue_geometry = tb,
+               min_props = min_props,
+               BPPARAM = MulticoreParam(4, progressbar = TRUE))
+}
+```
+
+```{r}
+sample <- "nonexpanded2"
+runBinAnalyses(sample, file.path(sample, "bin_analyses"), tissue_geometry = readRDS(paste0("../", sample, "_tb.rds")),
+               min_props = min_props,
+               BPPARAM = MulticoreParam(4, progressbar = TRUE))
+```
+
+```{r}
+for (s in sample_info$sample[-1]) {
+    run_wayfarer(s)
+}
+```
+
+```{r}
+dirs_use <- file.path(sample_info$sample, "bin_analyses")
+df_morans <- readMoranSamples(dirs_use, sample_info = sample_info)
+```
+
+```{r}
+df_lees <- readLeeSamples(dirs_use, sample_info = sample_info, cutoff = 0.2)
+```
+
+Run LMM for Moran's I
+```{r, message=FALSE}
+df_morans_lmm <- df_morans |> 
+    filter(condition != "non-expanded") |> 
+    rename(value = moran, group = condition, feature = gene) |> 
+    runBinLMM(BPPARAM = SerialParam(progressbar = TRUE))
+```
+
+```{r}
+df_morans_lmm |> 
+    filter(p_random_adj < 0.05) |> 
+    arrange(desc(log_p_random_adj))
+```
+
+```{r}
+genes_use <- df_morans_lmm |> 
+    slice_max(log_p_random_adj, n = 9) |> 
+    pull(feature)
+```
+
+```{r}
+data("ditto_colors")
+```
+
+```{r}
+df_morans |> 
+    filter(gene %in% genes_use, condition != "non-expanded") |> 
+    ggplot(aes(side, moran, group = sample)) +
+    geom_line(aes(color = condition)) +
+    scale_color_manual(values = ditto_colors) +
+    scale_x_continuous(transform = "log2") +
+    facet_wrap(~ gene)
+```
+
+```{r, message=FALSE}
+df_lees_lmm <- df_lees |> 
+    filter(condition != "non-expanded") |> 
+    rename(value = lee, group = condition, feature = pair) |> 
+    runBinLMM(BPPARAM = MulticoreParam(4, progressbar = TRUE))
+```
+
+```{r}
+pairs_use <- df_lees_lmm |> 
+    slice_max(log_p_slope_adj, n = 9) |> 
+    pull(feature)
+```
+
+```{r}
+df_lees |> 
+    filter(condition != "non-expanded") |> 
+    rename(value = lee, group = condition, feature = pair) |> 
+    plotLeeSelect(df_lees_lmm, pairs_use)
+```
+
+Interesting. So it's PI14 being  different from PI7 in both cases. Would be interesting to find what difference Yoda1 makes, but since the purpose of the vignette is just to demonstrate how to use the package, I don't think that's necessary here.
+
