@@ -20,7 +20,6 @@ plotSFEsBiscale(
   sep = "_",
   ncol = NULL,
   nrow = NULL,
-  samples_use = NULL,
   side_use = NULL,
   widths = NULL,
   heights = NULL,

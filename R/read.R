@@ -119,7 +119,7 @@ readLeeSamples <- function(dirs, sample_info = NULL, cutoff = 0L) {
     out <- bind_rows(dfs)
     if (cutoff > 0L) {
         pairs_use <- out |>
-            group_by(pair, sample) |>
+            group_by(pair) |>
             summarize(max = max(abs(lee))) |>
             filter(max > cutoff) |> pull(pair) |> unique()
         out <- out |>

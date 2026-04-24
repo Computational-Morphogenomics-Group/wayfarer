@@ -1,4 +1,4 @@
-# Here I make a small subset of transcripts from mouse skin
+# Here I make an example dataset from transcripts from mouse skin
 # https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE289263
 
 # 1. See the size reduction when I write it to Parquet

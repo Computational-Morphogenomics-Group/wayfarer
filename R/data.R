@@ -23,28 +23,35 @@
     sample
 }
 .dl_sample1 <- function(sample, bfc, type = c("tx_spots", "tissue_boundary",
-                                              "binned", "binned_esda")) {
+                                              "binned", "binned_esda", "cellchat")) {
     # Download 1 sample
     type <- match.arg(type)
     url <- switch(type,
                   tx_spots = "https://osf.io/b95ca",
                   tissue_boundary = "https://osf.io/4mxa8",
                   binned = "https://osf.io/kmhdt",
-                  binned_esda = "https://osf.io/sk2nq")
+                  binned_esda = "https://osf.io/sk2nq",
+                  cellchat = "https://osf.io/4p8yx")
     suff <- switch(type,
                    tx_spots = ".csv.gz",
                    tissue_boundary = "_tb.rds",
                    binned = ".tar.gz",
-                   binned_esda = "_bin_analyses.tar.gz")
+                   binned_esda = "_bin_analyses.tar.gz",
+                   cellchat = ".rds")
     fnm <- paste0(sample, suff)
-    q <- bfcquery(bfc, fnm)
+    q <- bfcquery(bfc, fnm, exact = TRUE)
     n <- nrow(q)
     i <- 1
-    if (n > 1) {
-        message("multiple 'id' hits; using last")
-        i <- n
-    } else if (n > 0) {
-        return(q$rpath[i])
+    if (n > 0) {
+        if (n > 1) {
+            message("multiple 'id' hits; using last")
+            i <- n
+        }
+        out <- q$rpath[i]
+        if (basename(out) == out) {
+            out <- file.path(bfccache(bfc), out)
+        }
+        return(out)
     }
     no <- osf_retrieve_node(url)
     df <- osf_ls_files(no, pattern = fnm, type = "file")
@@ -77,7 +84,7 @@
 #'   See \code{\link{sample_info}} for information about each sample.
 #' @param bfc \code{\link[BiocFileCache]{BiocFileCache}} instance where you can
 #'   set where the files will be stored.
-#' @importFrom BiocFileCache BiocFileCache bfcquery bfcadd
+#' @importFrom BiocFileCache BiocFileCache bfcquery bfcadd bfccache
 #' @importFrom osfr osf_retrieve_node osf_ls_files osf_download
 #' @return A character vector of file paths, except for
 #'   \code{Piezo1TissueBoundary} which returns a `sf` data frame.
@@ -121,3 +128,20 @@ Piezo1BinAnalyses <- .make_dl_function("binned_esda")
 #' @format A data frame
 #' @source https://www.nature.com/articles/s41467-025-62270-3
 "sample_info"
+
+#' Download CellChat database
+#'
+#' Taken from [CellChat's source
+#' code](https://github.com/jinworks/CellChat/tree/main/data), to use without
+#' installing CellChat, which can't be a imported or suggested by this package
+#' because CellChat is not on CRAN or Bioconductor.
+#'
+#' @inheritParams Piezo1-download
+#' @param species Either human or mouse
+#' @return A list holding the database
+#' @export
+getCellChatDB <- function(species = c("human", "mouse"), bfc = BiocFileCache()) {
+    species <- match.arg(species)
+    fp <- .dl_sample1(paste0("CellChatDB.", species), bfc, type = "cellchat")
+    readRDS(fp)
+}

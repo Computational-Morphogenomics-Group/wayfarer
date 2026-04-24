@@ -7,22 +7,7 @@
                                                cluster.args = leiden_params)))
 }
 
-.cluster_curves <- function(df, hclust_params, leiden_params, mat = NULL) {
-    # df is in long form, mat is in wide form
-    if (is.null(mat)) {
-        mat <- df |>
-            select(side, gene, value) |>
-            pivot_wider(names_from = side, values_from = value) |>
-            column_to_rownames("gene") |>
-            as.matrix()
-    }
-    diffs <- apply(mat, 1, diff) |> t()
-    df_clust <- .cluster_mat(mat, hclust_params, leiden_params)
-    df_clust_diff <- .cluster_mat(diffs, hclust_params, leiden_params) |>
-        dplyr::select(-gene, hclust_diffs = hclust, leiden_diffs = leiden)
-    df_clust <- cbind(df_clust, df_clust_diff)
-    df |> left_join(df_clust, by = "gene")
-}
+
 
 #' Cluster Moran's I curves
 #'
@@ -34,14 +19,16 @@
 #' \code{\link[bluster]{approxSilhouette}} function can be used to assess
 #' cluster quality.
 #'
-#' @param sfes A list of \code{SpatialFeatureExperiment} objects which have the
-#'   same genes, same sample IDs, and with Moran's I computed for the genes. The
-#'   names of the list must be the bin size.
+#' @param df Data frame from \code{\link{runBinAnalyses}} for Moran's I, with
+#'   columns moran, gene, and side.
 #' @param hclust_params Hierarchical clustering parameters, passed to
 #'   \code{\link[bluster]{HclustParam}}.
 #' @param leiden_params Leiden clustering parameters, passed to
 #'   \code{\link[igraph]{cluster_leiden}}.
-#' @return A data frame.
+#' @param mat Matrix with column as bin side lengths and rows as genes. If NULL,
+#'   then it will be made from \code{df}.
+#' @return The same data frame in the input but with cluster assignment of each
+#' gene added.
 #' @importFrom tibble tibble rownames_to_column column_to_rownames
 #' @importFrom dplyr select rename left_join mutate filter if_any group_by
 #'   summarize
@@ -49,63 +36,26 @@
 #' @importFrom SingleCellExperiment rowData
 #' @importFrom bluster clusterRows HclustParam NNGraphParam
 #' @export
-clusterMoranCurves <- function(sfes, hclust_params = list(),
+clusterMoranCurves <- function(df, hclust_params = list(),
                                leiden_params = list(resolution = 0.8,
-                                        objective_function = "modularity")) {
-    # Add data validation later
-    sides <- as.integer(names(sfes))
-    df_moran <- tibble(side = sides,
-                       morans = lapply(sfes, function(x) {
-                           rowData(x) |> as.data.frame() |>
-                               rownames_to_column() |>
-                               dplyr::select(gene = rowname,
-                                             value = moran_sample01)
-                           # OK, what if the sample_id is something else?
-                       })) |>
-        unnest(cols = morans)
-    .cluster_curves(df_moran, hclust_params, leiden_params) |>
-        rename(moran = value)
+                                                    objective_function = "modularity"),
+                               mat = NULL) {
+    # df is in long form, mat is in wide form
+    if (is.null(mat)) {
+        mat <- df |>
+            select(side, gene, moran) |>
+            pivot_wider(names_from = side, values_from = moran) |>
+            column_to_rownames("gene") |>
+            as.matrix()
+    }
+    diffs <- apply(mat, 1, diff) |> t()
+    df_clust <- .cluster_mat(mat, hclust_params, leiden_params)
+    df_clust_diff <- .cluster_mat(diffs, hclust_params, leiden_params) |>
+        dplyr::select(-gene, hclust_diffs = hclust, leiden_diffs = leiden)
+    df_clust <- cbind(df_clust, df_clust_diff)
+    df |> left_join(df_clust, by = "gene")
 }
 
-#' Cluster Geary's C curves
-#'
-#' Just like \code{\link{clusterMoranCurves}}, but for Geary's C.
-#'
-#' @inheritParams clusterMoranCurves
-#' @return A data frame.
-#' @export
-clusterGearyCurves <- function(sfes, hclust_params = list(),
-                               leiden_params = list(resolution = 0.8,
-                                                    objective_function = "modularity")) {
-    sides <- as.integer(names(sfes))
-    df_geary <- tibble(side = sides,
-                       gearys = lapply(sfes, function(x) {
-                           rowData(x) |> as.data.frame() |>
-                               rownames_to_column() |>
-                               dplyr::select(gene = rowname,
-                                             value = geary_sample01)
-                           # OK, what if the sample_id is something else?
-                       })) |>
-        unnest(cols = gearys)
-    .cluster_curves(df_geary, hclust_params, leiden_params) |>
-        rename(geary = value)
-}
-
-.get_pairs_df <- function(lees) {
-    nr <- nrow(lees[[1]])
-    inds_df <- tibble(j = unlist(lapply(seq_len(nr-1), function(x) rep(x+1, times = x))),
-                      i = unlist(lapply(seq_len(nr-1), seq_len)))
-    inds_df <- inds_df |>
-        mutate(gene1 = rownames(lees[[1]])[i],
-               gene2 = rownames(lees[[1]])[j]) |>
-        unite("pair", gene1, gene2, sep = "_")
-    inds <- upper.tri(lees[[1]]) # indices
-    uts <- lapply(lees, function(l) l[inds])
-    names(uts) <- names(lees)
-    uts <- as.data.frame(uts, optional = TRUE)
-    uts$pair <- inds_df$pair
-    uts
-}
 #' Cluster Lee's L curves
 #'
 #' Lee's L has been computed for pairs of genes across spatial scales. This
@@ -114,35 +64,19 @@ clusterGearyCurves <- function(sfes, hclust_params = list(),
 #' be used to assess cluster quality.
 #'
 #' @inheritParams clusterMoranCurves
-#' @param dir Directory where Lee's L results are stored. File names must have
-#'   the pattern "bin<x>_lee.rds", such as "bin12_lee.rds".
-#' @param cutoff Only gene pairs with Lee's L greater than the cutoff at at
-#'   least one bin size are used for clustering, due to the potentially large
-#'   number of pairs.
+#' @param df Data frame with Lee's L results from \code{\link{runBinAnalyses}},
+#'   which should have columns pair, side, and lee. The data frame can be read
+#'   into R with \code{\link{readLeeSamples}}, where a cutoff can be set to
+#'   remove gene pairs with low Lee's L in all bin sizes.
 #' @param sides Numeric vector of bin sizes whose results are to be read.
-#' @return A data frame.
+#' @return The same data frame in the input but with cluster assignment of each
+#'   gene pair added.
 #' @export
-clusterLeeCurves <- function(dir, sides, cutoff = 0.2, hclust_params = list(),
+clusterLeeCurves <- function(df, hclust_params = list(),
                              leiden_params = list(resolution = 0.8,
-                                        objective_function = "modularity")) {
-    fns <- paste0("bin", sides, "_lee.rds")
-    lees <- lapply(fns, readRDS)
-    names(lees) <- sides
-    lees <- lapply(lees, as.matrix)
-    rns <- rownames(lees[[1]])
-    lees <- lapply(lees, function(x) x[rns, rns])
-    df_lee <- .get_pairs_df(lees)
-    df_lee <- df_lee |>
-        mutate(any_corr = if_any(-pair, ~ abs(.x) > cutoff)) |>
-        filter(any_corr) |>
-        dplyr::select(-any_corr)
-    lee_mat <- df_lee |>
-        column_to_rownames(var = "pair") |>
-        as.matrix()
-    df_lee <- df_lee |>
-        pivot_longer(-pair, names_to = "side", values_to = "value") |>
-        mutate(side = as.integer(side))
-    .cluster_curves(df_lee |> rename(gene = pair), hclust_params, leiden_params,
-                    mat = lee_mat) |>
-        rename(lee = value, pair = gene)
+                                                  objective_function = "modularity"),
+                             mat = NULL) {
+    clusterMoranCurves(df_lee |> rename(gene = pair, moran = lee), hclust_params, leiden_params,
+                    mat = mat) |>
+        rename(lee = moran, pair = gene)
 }

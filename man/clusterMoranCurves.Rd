@@ -5,24 +5,28 @@
 \title{Cluster Moran's I curves}
 \usage{
 clusterMoranCurves(
-  sfes,
+  df,
   hclust_params = list(),
-  leiden_params = list(resolution = 0.8, objective_function = "modularity")
+  leiden_params = list(resolution = 0.8, objective_function = "modularity"),
+  mat = NULL
 )
 }
 \arguments{
-\item{sfes}{A list of \code{SpatialFeatureExperiment} objects which have the
-same genes, same sample IDs, and with Moran's I computed for the genes. The
-names of the list must be the bin size.}
+\item{df}{Data frame from \code{\link{runBinAnalyses}} for Moran's I, with
+columns moran, gene, and side.}
 
 \item{hclust_params}{Hierarchical clustering parameters, passed to
 \code{\link[bluster]{HclustParam}}.}
 
 \item{leiden_params}{Leiden clustering parameters, passed to
 \code{\link[igraph]{cluster_leiden}}.}
+
+\item{mat}{Matrix with column as bin side lengths and rows as genes. If NULL,
+then it will be made from \code{df}.}
 }
 \value{
-A data frame.
+The same data frame in the input but with cluster assignment of each
+gene added.
 }
 \description{
 Moran's I has been computed for the same genes across different spatial

@@ -42,9 +42,11 @@ Imports:
     tools,
     Voyager (>= 1.13.1)
 Suggests:
+    BiocStyle,
     igraph,
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 3.0.0)
 biocViews:
     Transcriptomics,
     Spatial,
@@ -55,3 +57,4 @@ VignetteBuilder: knitr
 Depends: 
     R (>= 3.5)
 LazyData: true
+Config/testthat/edition: 3

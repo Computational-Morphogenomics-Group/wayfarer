@@ -4,13 +4,14 @@
 \alias{plotLeeSelect}
 \title{Plot select Lee's L curves}
 \usage{
-plotLeeSelect(df_lees, lmm_res, pairs_use, title = NULL)
+plotLeeSelect(df, lmm_res, pairs_use, title = NULL)
 }
 \arguments{
-\item{df_lees}{Data frame with Lee's L results, same column names as in \code{df_res} in
-\code{\link{runBinLMM}}.}
+\item{df}{Data frame with Lee's L results from all samples, with columns
+pair, side, lee, sample, and group (for biological conditions).}
 
-\item{lmm_res}{Linear mixed model results data frame}
+\item{lmm_res}{Linear mixed model results data frame from
+\code{\link{runBinLMM}}}
 
 \item{pairs_use}{Which pairs to plot}
 
@@ -20,5 +21,5 @@ plotLeeSelect(df_lees, lmm_res, pairs_use, title = NULL)
 A \code{ggplot2} oboject
 }
 \description{
-Also annotate with relevant linear mixed model info
+Plot Lee's L curves from select gene pairs, coloring by biological conditions
 }

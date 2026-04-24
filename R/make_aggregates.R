@@ -137,7 +137,7 @@ getBinOverlapProp <- function(sfe, tissue_geometry, BPPARAM = SerialParam(),
         xc <- st_union(st_geometry(tissue_geometry)[st_intersects(st_as_sfc(st_bbox(g)), tissue_geometry, sparse = FALSE)])
         out[st_covered_by(g, xc, sparse = FALSE) |> as.vector()] <- AREA
         inds_comp <- st_overlaps(g, xc, sparse = FALSE) |> as.vector()
-        out[inds_comp] <- st_area(st_intersection(g, xc))
+        out[inds_comp] <- st_area(st_intersection(g[inds_comp], xc))
         out
     }, BPPARAM = BPPARAM) |> unlist()
     areas[is.na(areas)] <- 0

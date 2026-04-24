@@ -5,31 +5,32 @@
 \title{Cluster Lee's L curves}
 \usage{
 clusterLeeCurves(
-  dir,
-  sides,
-  cutoff = 0.2,
+  df,
   hclust_params = list(),
-  leiden_params = list(resolution = 0.8, objective_function = "modularity")
+  leiden_params = list(resolution = 0.8, objective_function = "modularity"),
+  mat = NULL
 )
 }
 \arguments{
-\item{dir}{Directory where Lee's L results are stored. File names must have
-the pattern "bin<x>_lee.rds", such as "bin12_lee.rds".}
-
-\item{sides}{Numeric vector of bin sizes whose results are to be read.}
-
-\item{cutoff}{Only gene pairs with Lee's L greater than the cutoff at at
-least one bin size are used for clustering, due to the potentially large
-number of pairs.}
+\item{df}{Data frame with Lee's L results from \code{\link{runBinAnalyses}},
+which should have columns pair, side, and lee. The data frame can be read
+into R with \code{\link{readLeeSamples}}, where a cutoff can be set to
+remove gene pairs with low Lee's L in all bin sizes.}
 
 \item{hclust_params}{Hierarchical clustering parameters, passed to
 \code{\link[bluster]{HclustParam}}.}
 
 \item{leiden_params}{Leiden clustering parameters, passed to
 \code{\link[igraph]{cluster_leiden}}.}
+
+\item{mat}{Matrix with column as bin side lengths and rows as genes. If NULL,
+then it will be made from \code{df}.}
+
+\item{sides}{Numeric vector of bin sizes whose results are to be read.}
 }
 \value{
-A data frame.
+The same data frame in the input but with cluster assignment of each
+  gene pair added.
 }
 \description{
 Lee's L has been computed for pairs of genes across spatial scales. This

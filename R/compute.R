@@ -88,6 +88,7 @@ runBinAnalyses <- function(dir, out_path, tissue_geometry,
         bs <- min(1000, round(ncol(sfe)/10))
         overlap_props <- getBinOverlapProp(sfe, tissue_geometry, BPPARAM = BPPARAM,
                                            batch_size = bs)
+        sfe$overlap_props <- overlap_props
         sfe <- removeEdgeBins(sfe, overlap_props, min_prop = min_props[bin_sizes[i]],
                               quantile = quantiles[bin_sizes[i]])
         if (ncol(sfe) < 10) {
@@ -101,7 +102,7 @@ runBinAnalyses <- function(dir, out_path, tissue_geometry,
         counts(sfe) <- as(counts(sfe), "CsparseMatrix")
         sfe <- addPerCellQC(sfe)
         sfe <- sfe[,sfe$sum > 0]
-        sfe <- logNormCounts(sfe)
+        sfe <- logNormCounts(sfe, size.factors = sfe$overlap_props)
         cat("Running PCA\n")
         sfe <- runPCA(sfe, ncomponents = ncomponents, scale = TRUE)
         cat("Running Moran's I\n")

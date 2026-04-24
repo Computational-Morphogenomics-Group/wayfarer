@@ -1,6 +1,12 @@
 ---
 title: "workflow"
-output: rmarkdown::html_vignette
+output: 
+  BiocStyle::html_document:
+        toc: true
+        number_sections: true
+        toc_depth: 3
+        toc_float:
+            collapsed: true
 vignette: >
   %\VignetteIndexEntry{workflow}
   %\VignetteEngine{knitr::rmarkdown}
@@ -34,27 +40,48 @@ library(BiocParallel)
 library(alabaster.sfe)
 library(tidyverse)
 library(scater)
+library(R.utils)
 theme_set(theme_bw())
 ```
 
 # Single sample
+## Creating spatial bins
+First, we apply spatial aggregation of various bin sizes to one sample and perform some basic analyses. You can do the same analyses and visualizations on all the other samples. The tissue boundary was computed from a concave hull of cell centroids as the images were not provided by the authors. See `SpatialFeatureExperiment::getTissueBoundaryConcave()`. For the purpose of demonstration, we can start with sample `expanded1`, one of the expanded skin samples 14 days post injection.
 
-First, we apply spatial aggregation of various bin sizes to one sample and perform some basic analyses. You can do the same analyses and visualizations on all the other samples. The tissue boundary was computed from a concave hull of cell centroids. See `SpatialFeatureExperiment::`
+The example dataset has been uploaded to OSF and can be downloaded with functions in the Wayfarer package.
 ```{r}
-tb <- readRDS("../expanded1_tb.rds")
-plot(tb)
+tb <- Piezo1TissueBoundary(sample = "expanded1")
+plot(st_geometry(tb))
 ```
 
+Also download the transcript spots 
 ```{r}
-sides <- sort(c(2^(3:8), 12 * 2^(0:4)))
+(tx_path <- Piezo1TxSpots("expanded1"))
 ```
 
+With the transcript spots, we can create spatial aggregates with a range of bin sizes (microns)
 ```{r}
-makeAggregates("../expanded1.csv.gz",
-               out_path = "expanded1", sample_id = "expanded1",
-               tech = "Xenium", tissue_boundary = tb, sides = sides,
-               flip_geometry = FALSE,
-               square = FALSE, BPPARAM = MulticoreParam(4, progressbar = TRUE))
+(sides <- sort(c(2^(3:8), 12 * 2^(0:4))))
+```
+
+The tissue boundary is used to remove bins that are entirely outside tissue. Often there are transcript spots detected outside tissue. Also unlike in the Wayfarer paper, hexagonal bins rather than square ones are used here to show that hexagonal bins also work.
+```{r, eval=FALSE}
+binned_path <- makeAggregates(tx_path,
+                              out_path = "expanded1", sample_id = "expanded1",
+                              tech = "Xenium", tissue_boundary = tb, sides = sides,
+                              flip_geometry = FALSE,
+                              square = FALSE, BPPARAM = MulticoreParam(4, progressbar = TRUE))
+```
+
+Since this takes a while to run, for the purpose of rendering this vignette on GitHub Actions, the results have been uploaded to OSF and can be downloaded
+
+```{r}
+(binned_path <- Piezo1Binned("expanded1"))
+```
+
+Decompress it into the current directory
+```{r}
+untar(binned_path)
 ```
 
 ```{r}
@@ -62,14 +89,32 @@ min_props <- c(0.9, 0.9, 0.85, 0.85, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.3)
 names(min_props) <- sides
 ```
 
-```{r}
+Bins that overlap too little with tissue will be outliers in analyses and cause artifacts, so here bins that overlap the tissue below a proportion will be removed. These proportions were found by manual tuning in the LUAD data used in the Wayfarer paper. Percentiles can also be used with the `quantiles` argument. A value should be supplied to each bin size.
+
+The `runBinAnalyses` performs the basic analyses on each bin size after removing bins that overlap too little with the tissue:
+
+1. Log normalize the data, using proportion of each bin overlapping tissue as size factor instead of total counts. Using the proportion vs. total counts makes a big difference in downstream analyses.
+2. Non-spatial PCA on log normalized data
+3. Moran's I on each gene, with log normalized data
+4. Lee's L on all gene pairs, with log normalized data
+
+```{r, eval=FALSE}
 runBinAnalyses("expanded1", "expanded1/bin_analyses", tissue_geometry = tb,
                min_props = min_props,
                BPPARAM = MulticoreParam(4, progressbar = TRUE))
 ```
 
+Since the analyses can take a while to run, the results can also be downloaded from OSF
+
 ```{r}
-sfe <- readObject("expanded1/bin_analyses/bin16_esda/")
+(bin_analyses_path <- Piezo1BinAnalyses("expanded1"))
+untar(bin_analyses_path)
+```
+
+## PCA
+Load one of the bin sizes to take a look, here 16 micron bin diameter
+```{r}
+(sfe <- readObject("expanded1/bin_analyses/bin16_esda/"))
 ```
 
 ```{r}
@@ -99,6 +144,9 @@ plotSpatialFeature(sfe, "Col17a1")
 spatialReducedDim(sfe, "PCA", ncomponents = 4, ncol = 1, divergent = TRUE, diverge_center = 0)
 ```
 
+## Moran's I curves
+Next see how Moran's I changes with bin sizes in this sample
+
 ```{r}
 df_moran <- read_csv("expanded1/bin_analyses/df_moran.csv")
 ```
@@ -107,105 +155,172 @@ df_moran <- read_csv("expanded1/bin_analyses/df_moran.csv")
 plotMoranCurves(df_moran)
 ```
 
+Here each gene has a curve. We see different kinds of curves: some genes have higher Moran's I at small scales that decrease at larger scales. Some form a peak between 16 and 32 microns in bin diameter. Some form a peak between 64 and 128 microns. We can cluster the curves to better visualize these different patterns:
+
 ```{r}
-df_lee <- read_csv("expanded1/bin_analyses/df_lee.csv")
+df_moran2 <- clusterMoranCurves(df_moran)
+names(df_moran2)
 ```
 
+Hierarchical clustering and Leiden are used to cluster the curves, both the original values and differences between adjacent bin sizes (hclust_diffs and leiden_diffs).
+
+Plot the clusters
+```{r}
+plotMoranCurves(df_moran2, facet_by = "leiden")
+```
+
+Plot the cluster medians
+```{r}
+plotClusterMedians(df_moran2, "leiden")
+```
+
+Plot the Moran's I curves with the mean and variance of Moran's I under the null hypothesis of no spatial autocorrelation, and the 2.5% and 97.5% quantiles after Bonferroni correction for the number of genes and bin sizes
+
+```{r, messages = FALSE}
+# Need to read all bin sizes for the spatial neighborhood graphs
+sfes <- readBins("expanded1/bin_analyses", sides = sides)
+mean_vars <- getMoranMeanVar(sfes, "moran")
+```
+
+```{r}
+plotMoranCurves(df_moran2, facet_by = "leiden", mean_vars = mean_vars,
+                show_null = TRUE)
+```
+
+## Lee's L curves
+Also read Lee's L; to make clustering easier, a cutoff of 0.2 is set so that gene pairs with Lee's L lower than 0.2 in all bin sizes will be removed.
+```{r}
+df_lee <-readLeeSamples("expanded1/bin_analyses", cutoff = 0.2)
+```
+
+Due to the large number of gene pairs, a smaller subset can be plotted to prevent the plot from becoming a solid block
 ```{r}
 plotLeeCurves(df_lee, sample_n = 1000)
 ```
 
-Cluster Moran's I curves (refactor code)
 
-Cluster Lee's L curves
+Here each gene pair has a curve. Some gene pairs have higher Lee's L at smaller scales which decrease at larger scales. Some peak between 16 and 32 microns. Some peak between 64 and 128 microns. Some have low Lee's L at small scales which increase at larger scales. Some have negative Lee's L at small scales which become positive at larger scales. Some have weakly negative Lee's L at smaller scales which becomes lower at intermediate scales.
 
-Plot different resolutions
+Cluster Lee's L curves to better visualize these patterns
 ```{r}
-sfes <- readBins("expanded1/bin_analyses/", sides = c(24, 48, 96, 192))
+df_lee2 <- clusterLeeCurves(df_lee)
 ```
 
 ```{r}
+plotLeeCurves(df_lee2, facet_by = "hclust_diffs", show_median = TRUE) +
+    geom_hline(yintercept = 0, linetype = 2, color = "gray")
+```
+
+```{r}
+plotClusterMedians(df_lee2, "leiden")
+```
+
+Unfotunately we can't plot that interval under null hypothesis like in Moran's I because the mean and variance of Lee's L under the null hypothesis of no spatial autocorrelation differ for each gene pair, depending on their Pearson correlation. When there's no spatial pattern, gene pairs with high Pearson correlation can still get a moderate value away from 0. In addition, computing such mean and variance requires a dense square matrix, so they can only be computed for larger bin sizes where the number of bins is smaller.
+
+## Plotting multiple bin sizes
+Here we plot gene expression in space in different bin sizes
+
+```{r}
+# Reduce empty space
 for (i in seq_along(sfes)) {
     sfes[[i]] <- rotateMinRect(sfes[[i]])
 }
 ```
 
-```{r, fig.width=12, fig.height=7}
-plotSFEs(sfes, "Col17a1", show_sizes = TRUE, ncol = 1)
+Randomly select a gene from Leiden cluster 4
+```{r}
+set.seed(29)
+gene_use <- df_moran2 |> 
+    filter(leiden == 4) |> 
+    pull(gene) |> 
+    sample(1)
 ```
 
-```{r, fig.width=9, fig.height=7}
-plotSFEsBiscale(sfes, "Col17a1", "Krt5", df_lee = df_lee, ncol = 1)
+```{r, fig.width=12, fig.height=7}
+plotSFEs(sfes[c("16", "48", "96", "256")], gene_use, show_sizes = TRUE, ncol = 1)
+```
+
+We can also make this kind of plot for Lee's L, with a bivariate palette. Randomly select a gene pair 
+
+```{r}
+set.seed(29)
+pair_use <- df_lee2 |> 
+    filter(hclust_diffs == 4) |> 
+    pull(pair) |> 
+    sample(1) |> 
+    str_split(pattern = "_", simplify = TRUE) |> 
+    as.vector()
+```
+
+```{r, fig.width=9, fig.height=9}
+plotSFEsBiscale(sfes[c("16", "48", "96", "256")], pair_use[1], pair_use[2], 
+                df_lee = df_lee, ncol = 1, legend_index = 1,
+                heights = rep(1, 5))
 ```
 
 # Multiple samples
 
+After seeing the Moran's I and Lee's L curves for one sample, one may say, "Interesting, so what?" So we'll compare these curves across multiple biological conditions and see what genes and gene pairs differ in this multi-scale manner that may not be apparent when only one spatial scale is analyzed. Here we get which sample is from which biological condition
 ```{r}
-sample_info <- tribble(~sample, ~condition,
-                       "expanded1", "PI14",
-                       "expanded2", "PI14",
-                       "expanded1_pi7", "PI7",
-                       "expanded2_pi7", "PI7",
-                       "nonexpanded1", "non-expanded",
-                       "nonexpanded2", "non-expanded",
-                       "yoda1", "Yoda1",
-                       "yoda2", "Yoda1")
+data("sample_info")
+sample_info
 ```
 
-Run the same thing for all the other samples
+Run the whole pipeline for all the other samples; because this takes a while to run (1 and a half hours on my laptop with 4 cores), we can download the results from OSF to render the vignette fast.
 
-```{r}
-run_wayfarer <- function(sample) {
-    tb <- readRDS(paste0("../", sample, "_tb.rds"))
-    makeAggregates(paste0("../", sample, ".csv.gz"),
-               out_path = sample, sample_id = sample,
+```{r, eval=FALSE}
+tbs <- Piezo1TissueBoundary("all")
+tx_paths <- Piezo1TxSpots("all")
+for (s in sample_info$sample[-1]) {
+    tb <- tbs$geometry[tbs$sample == s]
+    makeAggregates(tx_paths[s],
+               out_path = s, sample_id = s,
                tech = "Xenium", tissue_boundary = tb, sides = sides,
                flip_geometry = FALSE,
                square = FALSE, BPPARAM = MulticoreParam(4, progressbar = TRUE))
-    runBinAnalyses(sample, file.path(sample, "bin_analyses"), tissue_geometry = tb,
+    runBinAnalyses(s, file.path(s, "bin_analyses"), tissue_geometry = tb,
                min_props = min_props,
                BPPARAM = MulticoreParam(4, progressbar = TRUE))
 }
 ```
 
 ```{r}
-sample <- "nonexpanded2"
-runBinAnalyses(sample, file.path(sample, "bin_analyses"), tissue_geometry = readRDS(paste0("../", sample, "_tb.rds")),
-               min_props = min_props,
-               BPPARAM = MulticoreParam(4, progressbar = TRUE))
+# Download from OSF
+bin_analyses_dirs <- Piezo1BinAnalyses(sample = "all")
+for (s in bin_analyses_dirs[-1]) untar(s)
 ```
 
-```{r}
-for (s in sample_info$sample[-1]) {
-    run_wayfarer(s)
-}
-```
+## LMM analysis for Moran's I
+Here we use linear mixed models (LMM) with a spline term to model the Moran's I curve, with a random effect in intercept and slope so that each biological condition has its own intercept and slope.
 
 ```{r}
 dirs_use <- file.path(sample_info$sample, "bin_analyses")
 df_morans <- readMoranSamples(dirs_use, sample_info = sample_info)
 ```
 
-```{r}
-df_lees <- readLeeSamples(dirs_use, sample_info = sample_info, cutoff = 0.2)
-```
-
-Run LMM for Moran's I
+Because the non-expanded samples have many small pieces and too few cells, their Moran's I and Lee's L curves are rather erratic. So they're excluded from the following analyses.
 ```{r, message=FALSE}
 df_morans_lmm <- df_morans |> 
     filter(condition != "non-expanded") |> 
     rename(value = moran, group = condition, feature = gene) |> 
-    runBinLMM(BPPARAM = SerialParam(progressbar = TRUE))
+    runBinLMM(BPPARAM = SerialParam())
 ```
 
+What proportion of genes have significant random effects?
 ```{r}
-df_morans_lmm |> 
-    filter(p_random_adj < 0.05) |> 
-    arrange(desc(log_p_random_adj))
+mean(df_morans_lmm$p_random_adj < 0.05)
 ```
+
+What proportion have significant random slopes?
+```{r}
+mean(df_morans_lmm$p_slope_adj < 0.05)
+```
+
+Here we plot the top 9 genes with the most significant random effects, meaning either the intercept or the slope differ among  different conditions.
 
 ```{r}
 genes_use <- df_morans_lmm |> 
+    filter(p_random_adj < 0.05) |> 
     slice_max(log_p_random_adj, n = 9) |> 
     pull(feature)
 ```
@@ -221,16 +336,89 @@ df_morans |>
     geom_line(aes(color = condition)) +
     scale_color_manual(values = ditto_colors) +
     scale_x_continuous(transform = "log2") +
-    facet_wrap(~ gene)
+    facet_wrap(~ gene) +
+    labs(x = "Bin size (μm)", y = "Moran's I")
 ```
 
+Also plot genes with the most significant random slopes, i.e. slopes of the spline terms differ among conditions
+
+```{r}
+genes_use <- df_morans_lmm |> 
+    filter(p_slope_adj < 0.05) |> 
+    slice_max(log_p_slope_adj, n = 9) |> 
+    pull(feature)
+```
+
+```{r}
+df_morans |> 
+    filter(gene %in% genes_use, condition != "non-expanded") |> 
+    ggplot(aes(side, moran, group = sample)) +
+    geom_line(aes(color = condition)) +
+    scale_color_manual(values = ditto_colors) +
+    scale_x_continuous(transform = "log2") +
+    facet_wrap(~ gene) +
+    labs(x = "Bin size (μm)", y = "Moran's I")
+```
+
+The difference seems small for some of the genes; the LMM here does not take into account the different variances of Moran's I at different bin sizes. Plot one of these genes in space in different samples
+```{r, message=FALSE, warning=FALSE}
+sfes <- readBinSamples(file.path(sample_info$sample, "bin_analyses"),
+                       side = 32)
+```
+
+```{r}
+# Reduce empty space
+for (i in seq_along(sfes)) {
+    sfes[[i]] <- rotateMinRect(sfes[[i]])
+}
+```
+
+```{r, fig.width=9, fig.height=6}
+plotSFEs(sfes, "Lgr6", ncol = 2, widths = c(1,1), show_sizes = FALSE) &
+    theme(legend.position = "none")
+```
+
+## LMM analysis for Lee's L
+Also run LMM for Lee's L curves, to see if the multi-scale behaviors of Lee's L differ among conditions. With the cutoff of 0.2 here, gene pairs that have absolute values of Lee's L below 0.2 for all bin sizes and all samples will be removed.
+```{r}
+df_lees <- readLeeSamples(dirs_use, sample_info = sample_info, cutoff = 0.2)
+```
+
+It takes a few minutes to run
 ```{r, message=FALSE}
 df_lees_lmm <- df_lees |> 
     filter(condition != "non-expanded") |> 
     rename(value = lee, group = condition, feature = pair) |> 
-    runBinLMM(BPPARAM = MulticoreParam(4, progressbar = TRUE))
+    runBinLMM(BPPARAM = MulticoreParam(4))
 ```
 
+What proportion of gene pairs have significant random effects?
+```{r}
+mean(df_lees_lmm$p_random_adj < 0.05)
+```
+
+What proportion have significant random slopes?
+```{r}
+mean(df_lees_lmm$p_slope_adj < 0.05)
+```
+
+Plot the gene pairs with the most significant random effects
+```{r}
+pairs_use <- df_lees_lmm |> 
+    slice_max(log_p_random_adj, n = 9) |> 
+    pull(feature)
+```
+
+```{r}
+df_lees |> 
+    filter(condition != "non-expanded") |> 
+    rename(group = condition) |> 
+    plotLeeSelect(df_lees_lmm, pairs_use)
+```
+
+The differences are more pronounced here than in Moran's I. It can be due to the differences between PI7 (Yoda1 is also at PI7) and PI14, but sometimes it seems that Yoda1 treatment makes the gene co-expression at PI7 more like that at PI14.
+
+Also plot gene pairs with the most significant random slopes
 ```{r}
 pairs_use <- df_lees_lmm |> 
     slice_max(log_p_slope_adj, n = 9) |> 
@@ -240,9 +428,67 @@ pairs_use <- df_lees_lmm |>
 ```{r}
 df_lees |> 
     filter(condition != "non-expanded") |> 
-    rename(value = lee, group = condition, feature = pair) |> 
+    rename(group = condition) |> 
     plotLeeSelect(df_lees_lmm, pairs_use)
 ```
 
-Interesting. So it's PI14 being  different from PI7 in both cases. Would be interesting to find what difference Yoda1 makes, but since the purpose of the vignette is just to demonstrate how to use the package, I don't think that's necessary here.
+Plot one of the gene pairs in space
+```{r, message=FALSE, warning=FALSE}
+sfes <- readBinSamples(file.path(sample_info$sample, "bin_analyses"),
+                       side = 128)
+```
+
+```{r}
+# get rid of that one annoying bin from a smaller piece of tissue
+sfes[[6]] <- findDebrisCells(sfes[[6]], distance_cutoff = 300)
+sfes[[6]] <- sfes[[6]][,!sfes[[6]]$is_debris]
+```
+
+```{r}
+# Reduce empty space
+for (i in seq_along(sfes)) {
+    sfes[[i]] <- rotateMinRect(sfes[[i]])
+}
+```
+
+```{r, fig.width=9, fig.height=7}
+plotSFEsBiscale(sfes, "Ldhb", "Pfkm", df_lees, ncol = 2, widths = c(1,1), 
+                show_sizes = FALSE, side_use = 64, legend_index = 6)
+```
+
+## Cell Chat
+
+Here we find which gene pairs with significant Lee's L random effects or random slopes that are known interactions in CellChat's database, without actually using the CellChat package (which is not on CRAN or Bioconductor).
+
+```{r}
+df_lee_pathways <- getCellChatInfo(df_lees_lmm, genes = rownames(sfes[[1]]),
+                                   species = "mouse")
+df_lee_pathways
+```
+
+Plot these gene pairs that are in CellChat's database
+
+```{r}
+pairs_use <- df_lee_pathways |> 
+    pull(pair) |> unique()
+```
+
+```{r, fig.width=6, fig.height=3}
+df_lees |> 
+    filter(condition != "non-expanded") |> 
+    rename(group = condition) |> 
+    plotLeeSelect(df_lees_lmm, pairs_use)
+```
+
+Plot one of them in space
+
+```{r, fig.width=9, fig.height=7}
+plotSFEsBiscale(sfes, "Itgb1", "Tnc", df_lees, ncol = 2, widths = c(1,1), 
+                show_sizes = FALSE, side_use = 64, legend_index = 6)
+```
+
+# Session info
+```{r}
+sessionInfo()
+```
 
