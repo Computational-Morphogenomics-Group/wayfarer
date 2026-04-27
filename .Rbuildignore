@@ -4,3 +4,7 @@
 ^data-raw$
 ^\.positai$
 ^\.claude$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.github$
