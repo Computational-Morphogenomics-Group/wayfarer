@@ -54,7 +54,7 @@ make_cells_tx <- function(fn) {
                               inds <- chull(as.matrix(df))
                               df[c(inds,inds[1]),]
                           }),
-               nrow = map_int(data, nrow)) |>
+               nrow = vapply(data, nrow, FUN.VALUE = integer(1))) |>
         filter(nrow >= 4) |>
         select(-nrow) |>
         unnest(cols = data) |>

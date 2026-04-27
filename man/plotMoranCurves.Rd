@@ -40,6 +40,8 @@ hypothesis from \code{\link{getMoranMeanVar}}, required for \code{show_null
 = TRUE}.}
 
 \item{color_name}{Name to show for colors in the legend.}
+
+\item{title_name}{Name of the metric to put on the plot title.}
 }
 \value{
 A \code{ggplot} object.

@@ -24,6 +24,8 @@ runBinAnalyses(
 size must be in a directory named "binx", such as "bin12" for 12 micron
 bins.}
 
+\item{out_path}{Directory to write the output}
+
 \item{tissue_geometry}{Either tissue boundary (with holes if present in
 tissue) or cell segmentation polygons. Area of overlap of each bin with
 this geometry will be computed.}

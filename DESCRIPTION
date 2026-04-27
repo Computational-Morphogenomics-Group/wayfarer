@@ -25,13 +25,14 @@ Imports:
     dplyr,
     ggplot2,
     lmerTest,
-    Matrix,
     osfr,
     patchwork,
     rlang,
     scales,
+    scater,
     scico,
     SingleCellExperiment,
+    sf,
     SpatialFeatureExperiment (>= 1.13.2),
     SummarizedExperiment,
     spdep,
@@ -40,12 +41,16 @@ Imports:
     tibble,
     tidyr,
     tools,
-    Voyager (>= 1.13.1)
+    Voyager (>= 1.13.1),
+    zeallot
 Suggests:
     BiocStyle,
     igraph,
     knitr,
+    purrr,
+    readr,
     rmarkdown,
+    R.utils,
     testthat (>= 3.0.0)
 biocViews:
     Transcriptomics,
@@ -55,6 +60,6 @@ biocViews:
 RoxygenNote: 7.3.3
 VignetteBuilder: knitr
 Depends: 
-    R (>= 3.5)
+    R (>= 4.1.0)
 LazyData: true
 Config/testthat/edition: 3

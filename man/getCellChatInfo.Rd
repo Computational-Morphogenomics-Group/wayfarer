@@ -20,8 +20,8 @@ than the number of genes in the database.}
 
 \item{species}{Either "human" or "mouse".}
 
-\item{bfc}{A \code{\link{BiocFileCache}} instance for where the CellChat
-database will be downloaded.}
+\item{bfc}{A \code{\link[BiocFileCache]{BiocFileCache}} instance for where
+the CellChat database will be downloaded.}
 }
 \value{
 A data frame with the LMM results and additional columns from

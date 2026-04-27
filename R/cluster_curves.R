@@ -68,7 +68,6 @@ clusterMoranCurves <- function(df, hclust_params = list(),
 #'   which should have columns pair, side, and lee. The data frame can be read
 #'   into R with \code{\link{readLeeSamples}}, where a cutoff can be set to
 #'   remove gene pairs with low Lee's L in all bin sizes.
-#' @param sides Numeric vector of bin sizes whose results are to be read.
 #' @return The same data frame in the input but with cluster assignment of each
 #'   gene pair added.
 #' @export

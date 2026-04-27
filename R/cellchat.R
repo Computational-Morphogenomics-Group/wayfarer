@@ -12,8 +12,8 @@
 #'   smFISH-based technology, the list of gene of interest is often much smaller
 #'   than the number of genes in the database.
 #' @param species Either "human" or "mouse".
-#' @param bfc A \code{\link{BiocFileCache}} instance for where the CellChat
-#'   database will be downloaded.
+#' @param bfc A \code{\link[BiocFileCache]{BiocFileCache}} instance for where
+#'   the CellChat database will be downloaded.
 #' @return A data frame with the LMM results and additional columns from
 #'   CellChat database for more info about the interaction.
 #' @importFrom stringr str_split str_to_sentence str_to_upper
@@ -27,23 +27,23 @@ getCellChatInfo <- function(df_lees_lmm, genes, species = c("human", "mouse"),
     if (species == "mouse")
         cc_int <- lapply(cc_int, str_to_sentence)
     cc_int_unlist <- unlist(cc_int) |> unique()
-    cc_int_sub <- cc_int[map_lgl(cc_int, ~ any(genes %in% .))]
+    cc_int_sub <- cc_int[vapply(cc_int, function(x) any(genes %in% x), FUN.VALUE = logical(1))]
     df_lee_pathways <- df_lees_lmm |>
         separate_wider_delim(feature, "_", names = paste0("gene", 1:2)) |>
         filter(gene1 %in% cc_int_unlist, gene2 %in% cc_int_unlist)
     df_lee_pathways <- df_lee_pathways |>
         mutate(interaction = map2(gene1, gene2, function(x,y)
-            which(map_lgl(cc_int_sub, function(p) x %in% p & y %in% p)))) |>
+            which(vapply(cc_int_sub, function(p) x %in% p & y %in% p, FUN.VALUE = logical(1))))) |>
         mutate(n_pathways = lengths(interaction)) |>
         filter(n_pathways > 0) |>
         select(-n_pathways) |>
         unnest(interaction)
-    cc_int_sub2 <- map_chr(cc_int_sub, paste, collapse = "_")
+    cc_int_sub2 <- vapply(cc_int_sub, paste, collapse = "_", FUN.VALUE = character(1))
     if (species == "mouse")
         cc_int_sub2 <- str_to_upper(cc_int_sub2)
     df_lee_pathways |>
         mutate(interaction_name = cc_int_sub2[interaction]) |>
-        left_join(CellChatDB.mouse$interaction, by = "interaction_name") |>
+        left_join(ccdb$interaction, by = "interaction_name") |>
         unite("pair", gene1, gene2) |>
         filter(p_slope_adj < 0.05 | p_random_adj < 0.05 | p_main_adj < 0.05) |>
         arrange(p_slope_adj)

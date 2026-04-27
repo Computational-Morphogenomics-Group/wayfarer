@@ -25,8 +25,6 @@ remove gene pairs with low Lee's L in all bin sizes.}
 
 \item{mat}{Matrix with column as bin side lengths and rows as genes. If NULL,
 then it will be made from \code{df}.}
-
-\item{sides}{Numeric vector of bin sizes whose results are to be read.}
 }
 \value{
 The same data frame in the input but with cluster assignment of each

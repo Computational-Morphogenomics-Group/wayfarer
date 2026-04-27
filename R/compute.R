@@ -7,6 +7,7 @@
 #' @inheritParams Voyager::calculateUnivariate
 #' @inheritParams spdep::poly2nb
 #' @inheritParams getBinOverlapProp
+#' @param out_path Directory to write the output
 #' @param dir Directory where the binned outputs are located. Output of each bin
 #'   size must be in a directory named "binx", such as "bin12" for 12 micron
 #'   bins.

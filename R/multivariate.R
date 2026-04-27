@@ -33,7 +33,7 @@ plotEigenvalues <- function(sfes, npcs = 20, reduction = "PCA", field = "varExpl
         scale_color_continuous(transform = "log2") +
         scale_x_continuous(breaks = scales::breaks_width(2)) +
         labs(x = "Principal component", y = "Variance explained",
-             color = "Bin size (μm)")
+             color = sprintf("Bin size (\u03BCm)"))
 }
 
 .calculate_angle <- function(v1, v2) {
@@ -162,7 +162,7 @@ plotLoadingCurves <- function(sfes, pc = 1, reduction = "PCA", field = "rotation
         geom_line(alpha = 0.3) +
         scale_x_continuous(transform = "log2", breaks = scales::breaks_log(n = 10, base = 2)) +
         geom_hline(yintercept = 0, color = "gray", linetype = 2) +
-        labs(x = "Bin size (μm)", y = "Gene loading",
+        labs(x = sprintf("Bin size (\u03BCm)"), y = "Gene loading",
              title = title)
 }
 
@@ -193,7 +193,7 @@ plotMoranPCs <- function(sfes, npcs = 20, reduction = "PCA") {
         scale_color_continuous(trans = "log2") +
         scale_x_continuous(breaks = scales::breaks_width(2)) +
         labs(x = "Principal component", y = "Moran's I",
-             color = "Bin size (μm)")
+             color = sprintf("Bin size (\u03BCm)"))
 }
 
 #' Plot dimension reduction in space for multiple SFE objects
@@ -203,6 +203,7 @@ plotMoranPCs <- function(sfes, npcs = 20, reduction = "PCA") {
 #' in sign.
 #'
 #' @inheritParams plotLoadingCurves
+#' @inheritParams Voyager::spatialReducedDim
 #' @param sfes A list of SFE objects, for which the dimension reduction of
 #'   interest has been computed.
 #' @param field Field in the attribute of the dimension reduction where variance
@@ -225,7 +226,7 @@ plotSFEsRedDim <- function(sfes, pc = 1, reduction = "PCA", field = "rotation",
         else spatialReducedDim(sfes[[i]], dimred = reduction, components = pc,
                                divergent = divergent, diverge_center = diverge_center,
                                bbox = bbox)
-        p + ggtitle(paste0(names(sfes)[[i]], " μm"))
+        p + ggtitle(paste0(names(sfes)[[i]], sprintf(" \u03BCm")))
     })
     wrap_plots(plts) + plot_annotation(title = paste0(reduction, " component ", pc))
 }

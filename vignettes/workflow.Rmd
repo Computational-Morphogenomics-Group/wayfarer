@@ -32,13 +32,18 @@ In this vignette, we apply the multi-scale spatial analysis workflow as shown in
 In this vignette, we perform a multi-scale spatial analysis with Wayfarer to identify genes and gene co-expression whose multi-scale spatial patterns differ across conditions.
 
 ```{r setup, message=FALSE}
-#library(Wayfarer)
+library(Wayfarer)
 library(Voyager)
 library(SpatialFeatureExperiment)
 library(sf)
 library(BiocParallel)
 library(alabaster.sfe)
-library(tidyverse)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(stringr)
+library(purrr)
+library(tidyr)
 library(scater)
 library(R.utils)
 theme_set(theme_bw())
@@ -70,7 +75,7 @@ binned_path <- makeAggregates(tx_path,
                               out_path = "expanded1", sample_id = "expanded1",
                               tech = "Xenium", tissue_boundary = tb, sides = sides,
                               flip_geometry = FALSE,
-                              square = FALSE, BPPARAM = MulticoreParam(4, progressbar = TRUE))
+                              square = FALSE, BPPARAM = MulticoreParam(2, progressbar = TRUE))
 ```
 
 Since this takes a while to run, for the purpose of rendering this vignette on GitHub Actions, the results have been uploaded to OSF and can be downloaded
@@ -101,7 +106,7 @@ The `runBinAnalyses` performs the basic analyses on each bin size after removing
 ```{r, eval=FALSE}
 runBinAnalyses("expanded1", "expanded1/bin_analyses", tissue_geometry = tb,
                min_props = min_props,
-               BPPARAM = MulticoreParam(4, progressbar = TRUE))
+               BPPARAM = MulticoreParam(2, progressbar = TRUE))
 ```
 
 Since the analyses can take a while to run, the results can also be downloaded from OSF
@@ -277,10 +282,10 @@ for (s in sample_info$sample[-1]) {
                out_path = s, sample_id = s,
                tech = "Xenium", tissue_boundary = tb, sides = sides,
                flip_geometry = FALSE,
-               square = FALSE, BPPARAM = MulticoreParam(4, progressbar = TRUE))
+               square = FALSE, BPPARAM = MulticoreParam(2, progressbar = TRUE))
     runBinAnalyses(s, file.path(s, "bin_analyses"), tissue_geometry = tb,
                min_props = min_props,
-               BPPARAM = MulticoreParam(4, progressbar = TRUE))
+               BPPARAM = MulticoreParam(2, progressbar = TRUE))
 }
 ```
 
@@ -302,7 +307,7 @@ Because the non-expanded samples have many small pieces and too few cells, their
 ```{r, message=FALSE}
 df_morans_lmm <- df_morans |> 
     filter(condition != "non-expanded") |> 
-    rename(value = moran, group = condition, feature = gene) |> 
+    dplyr::rename(value = moran, group = condition, feature = gene) |> 
     runBinLMM(BPPARAM = SerialParam())
 ```
 
@@ -337,7 +342,7 @@ df_morans |>
     scale_color_manual(values = ditto_colors) +
     scale_x_continuous(transform = "log2") +
     facet_wrap(~ gene) +
-    labs(x = "Bin size (μm)", y = "Moran's I")
+    labs(x = sprintf("Bin size (\u03BCm)"), y = "Moran's I")
 ```
 
 Also plot genes with the most significant random slopes, i.e. slopes of the spline terms differ among conditions
@@ -357,7 +362,7 @@ df_morans |>
     scale_color_manual(values = ditto_colors) +
     scale_x_continuous(transform = "log2") +
     facet_wrap(~ gene) +
-    labs(x = "Bin size (μm)", y = "Moran's I")
+    labs(x = sprintf("Bin size (\u03BCm)"), y = "Moran's I")
 ```
 
 The difference seems small for some of the genes; the LMM here does not take into account the different variances of Moran's I at different bin sizes. Plot one of these genes in space in different samples
@@ -388,8 +393,8 @@ It takes a few minutes to run
 ```{r, message=FALSE}
 df_lees_lmm <- df_lees |> 
     filter(condition != "non-expanded") |> 
-    rename(value = lee, group = condition, feature = pair) |> 
-    runBinLMM(BPPARAM = MulticoreParam(4))
+    dplyr::rename(value = lee, group = condition, feature = pair) |> 
+    runBinLMM(BPPARAM = MulticoreParam(2))
 ```
 
 What proportion of gene pairs have significant random effects?
@@ -412,7 +417,7 @@ pairs_use <- df_lees_lmm |>
 ```{r}
 df_lees |> 
     filter(condition != "non-expanded") |> 
-    rename(group = condition) |> 
+    dplyr::rename(group = condition) |> 
     plotLeeSelect(df_lees_lmm, pairs_use)
 ```
 
@@ -428,7 +433,7 @@ pairs_use <- df_lees_lmm |>
 ```{r}
 df_lees |> 
     filter(condition != "non-expanded") |> 
-    rename(group = condition) |> 
+    dplyr::rename(group = condition) |> 
     plotLeeSelect(df_lees_lmm, pairs_use)
 ```
 
@@ -476,7 +481,7 @@ pairs_use <- df_lee_pathways |>
 ```{r, fig.width=6, fig.height=3}
 df_lees |> 
     filter(condition != "non-expanded") |> 
-    rename(group = condition) |> 
+    dplyr::rename(group = condition) |> 
     plotLeeSelect(df_lees_lmm, pairs_use)
 ```
 
@@ -485,6 +490,11 @@ Plot one of them in space
 ```{r, fig.width=9, fig.height=7}
 plotSFEsBiscale(sfes, "Itgb1", "Tnc", df_lees, ncol = 2, widths = c(1,1), 
                 show_sizes = FALSE, side_use = 64, legend_index = 6)
+```
+
+```{r}
+# Clean up
+unlink(sample_info$sample, recursive = TRUE)
 ```
 
 # Session info

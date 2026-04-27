@@ -74,6 +74,7 @@ getMoranMeanVar <- function(sfes, name = c("moran", "geary")) {
 #' @param mean_vars Data frame for means and variances of Moran's I under null
 #'   hypothesis from \code{\link{getMoranMeanVar}}, required for \code{show_null
 #'   = TRUE}.
+#' @param title_name Name of the metric to put on the plot title.
 #' @importFrom ggplot2 ggplot aes geom_line scale_x_continuous ggtitle
 #'   scale_color_viridis_c facet_wrap geom_ribbon labs scale_color_manual
 #' @importFrom rlang .data
@@ -128,7 +129,7 @@ plotMoranCurves <- function(df, name = "moran", color_by = NULL, facet_by = NULL
                         fill = "darkslategray1", color = "cyan", alpha = 0.5) +
             geom_line(data = mean_vars, aes(side, mean), color = "blue")
     }
-    p + labs(title = paste(title_name, "across scales"), x = "Bin size (μm)",
+    p + labs(title = paste(title_name, "across scales"), x = sprintf("Bin size (\u03BCm)"),
              y = title_name, color = color_name)
 }
 
@@ -138,9 +139,19 @@ plotMoranCurves <- function(df, name = "moran", color_by = NULL, facet_by = NULL
 #' When there are more than 200,000 cells or bins and no bbox is specified, then
 #' scattermore is used to speed up plotting.
 #'
+#' @inheritParams patchwork::wrap_plots
 #' @param sfes A list of SFE objects.
 #' @param feature Gene to plot, only one gene
 #' @param bbox Bounding box to plot a subarea
+#' @param title Title of the entire multi-panel plot
+#' @param show_sizes Logical, whether to show bin sizes in the titles of
+#'   individual panels. If TRUE, then \code{sfes} must have names that are the
+#'   bin sizes
+#' @param crop Logical, whether to only plot a cropped area when \code{bbox} is
+#'   specified. If FALSE, then the bounding box will be shown as a box on the
+#'   plot while the entire tissue section will be shown. This is used to show
+#'   where a bounding box is to provide context along side a plot cropping by
+#'   the bounding box.
 #' @param ... Other arguments to pass to
 #'   \code{\link[Voyager]{plotSpatialFeature}}
 #' @importFrom Voyager plotSpatialFeature
@@ -179,7 +190,7 @@ plotSFEs <- function(sfes, feature, bbox = NULL, title = NULL,
         }
         moran_name <- paste("moran", sampleIDs(sfes[[i]]), sep = "_")
         if (show_sizes) {
-            tt <- paste0(names(sfes)[[i]], " μm, I = ",
+            tt <- paste0(names(sfes)[[i]], sprintf(" \u03BCm, I = "),
                          format(rowData(sfes[[i]])[feature1, moran_name],
                                 digits = 3))
         } else {
@@ -239,7 +250,7 @@ plotLeeCurves <- function(df, facet_by = NULL, show_median = FALSE,
                 geom_line(data = df_med, aes(side, median), color = "magenta", linewidth = 1)
         }
     }
-    p + labs(title = "Lee's L across scales", x = "Bin size (μm)", y = "Lee's L")
+    p + labs(title = "Lee's L across scales", x = sprintf("Bin size (\u03BCm)"), y = "Lee's L")
 }
 
 #' Plot select Lee's L curves
@@ -268,7 +279,7 @@ plotLeeSelect <- function(df, lmm_res, pairs_use, title = NULL) {
         geom_hline(color = "gray", yintercept = 0, linetype = 2) +
         scale_x_continuous(transform = "log2", breaks = scales::breaks_log(n = 10, base = 2)) +
         scale_color_manual(values = ditto_colors) +
-        labs(x = "Bin size (μm)", y = "Lee's L", title = title)
+        labs(x = sprintf("Bin size (\u03BCm)"), y = "Lee's L", title = title)
     if ("type" %in% names(lmm_res))
         p <- p + facet_wrap(~ label)
     else p <- p + facet_wrap(~ pair)
@@ -296,7 +307,7 @@ plotClusterMedians <- function(df, cluster_col) {
         geom_line() +
         scale_x_continuous(transform = "log2", breaks = breaks_log(10, 2)) +
         scale_color_manual(values = ditto_colors) +
-        labs(x = "Bin size (μm)", y = "Median")
+        labs(x = sprintf("Bin size (\u03BCm)"), y = "Median")
 }
 
 #' Plot pairs of genes in space from multiple SFE objects
@@ -310,6 +321,9 @@ plotClusterMedians <- function(df, cluster_col) {
 #' @param sfes A list of SFE objects, whose names must be the bin sizes.
 #' @param df_lee Data frame from \code{\link{clusterLeeCurves}}, where Lee's L
 #'   values are extracted to annotate the plot.
+#' @param exprs_value Which assay whose data should be plotted
+#' @param side_use Which side length whose Lee's L is to be plotted. It must be
+#' specified when plotting the same bin size from multiple samples.
 #' @param bbox Named numeric vector specifying a bounding box, either to zoom
 #'   into a smaller area or to show the box itself. The names should be "xmin",
 #'   "xmax", "ymin", and "ymax" in any order. The same bbox will be used for all
@@ -353,7 +367,7 @@ plotSFEsBiscale <- function(sfes, feature1, feature2, df_lee, colGeometryName = 
             l <- l$lee
         }
         if (show_sizes)
-            title_use <- paste0(names(sfes)[i], " μm, L = ", format(l, digits = 3))
+            title_use <- paste0(names(sfes)[i], sprintf(" \u03BCm, L = "), format(l, digits = 3))
         else title_use <- paste0(sampleIDs(sfes[[i]]), ", L = ", format(l, digits = 3))
         if (!is.null(title) && i == 1L) {
             title_use <- paste(title, title_use, sep = "\n")

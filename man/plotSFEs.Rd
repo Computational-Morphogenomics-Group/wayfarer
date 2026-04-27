@@ -26,6 +26,32 @@ plotSFEs(
 
 \item{bbox}{Bounding box to plot a subarea}
 
+\item{title}{Title of the entire multi-panel plot}
+
+\item{show_sizes}{Logical, whether to show bin sizes in the titles of
+individual panels. If TRUE, then \code{sfes} must have names that are the
+bin sizes}
+
+\item{ncol, nrow}{The dimensions of the grid to create - if both are \code{NULL} it
+will use the same logic as \link[ggplot2:facet_wrap]{facet_wrap()} to set the
+dimensions}
+
+\item{widths, heights}{The relative widths and heights of each column and row
+in the grid. Will get repeated to match the dimensions of the grid. The
+special value of \code{NA}/\verb{-1null} will behave as \verb{1null} unless a fixed aspect
+plot is inserted in which case it will allow the dimension to expand or
+contract to match the aspect ratio of the content}
+
+\item{design}{Specification of the location of areas in the layout. Can either
+be specified as a text string or by concatenating calls to \code{\link[patchwork:area]{area()}} together.
+See the examples for further information on use.}
+
+\item{crop}{Logical, whether to only plot a cropped area when \code{bbox} is
+specified. If FALSE, then the bounding box will be shown as a box on the
+plot while the entire tissue section will be shown. This is used to show
+where a bounding box is to provide context along side a plot cropping by
+the bounding box.}
+
 \item{...}{Other arguments to pass to
 \code{\link[Voyager]{plotSpatialFeature}}}
 }

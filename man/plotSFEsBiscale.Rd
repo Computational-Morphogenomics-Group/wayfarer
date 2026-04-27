@@ -50,20 +50,31 @@ SFE objects in \code{sfes}.}
 \item{palette}{Name of bivariate palette; see \code{\link[biscale]{bi_pal}}
 for complete list of built-in palettes in the `biscale` package.}
 
+\item{exprs_value}{Which assay whose data should be plotted}
+
 \item{swap_rownames}{Column name of \code{rowData(object)} to be used to
 identify features instead of \code{rownames(object)} when labeling plot
 elements. If not found in \code{rowData}, then rownames of the gene count
 matrix will be used.}
 
+\item{title}{Title of the entire multi-panel plot}
+
 \item{crop}{Logical, whether to crop the samples by \code{bbox}. If
 \code{FALSE}, then the \code{bbox} will be shown as a box on the plot to
 indicate its location.}
 
+\item{show_sizes}{Logical, whether to show bin sizes in the titles of
+individual panels. If TRUE, then \code{sfes} must have names that are the
+bin sizes}
+
 \item{sep}{Separator between the two gene symbols in \code{df_lee}}
 
-\item{ncol}{Number of columns if plotting multiple features. Defaults to
-\code{NULL}, which means using the same logic as \code{facet_wrap}, which
-is used by \code{patchwork}'s \code{\link{wrap_plots}} by default.}
+\item{ncol, nrow}{The dimensions of the grid to create - if both are \code{NULL} it
+will use the same logic as \link[ggplot2:facet_wrap]{facet_wrap()} to set the
+dimensions}
+
+\item{side_use}{Which side length whose Lee's L is to be plotted. It must be
+specified when plotting the same bin size from multiple samples.}
 
 \item{widths, heights}{The relative widths and heights of each column and row
 in the grid. Will get repeated to match the dimensions of the grid. The

@@ -27,6 +27,22 @@ plot. Facetting is used when length of this argument is greater than 1.}
 explained or eigenvalues are stored. If this field is not found, then the
 components will not be flipped and flipping is not necessary for dimension
 reductions such as NMF which only produce non-negative results.}
+
+\item{divergent}{Logical, whether a divergent palette should be used.}
+
+\item{diverge_center}{If \code{divergent = TRUE}, the center from which the
+palette should diverge. If \code{NULL}, then not centering.}
+
+\item{bbox}{A bounding box to specify a smaller region to plot, useful when
+the dataset is large. Can be a named numeric vector with names "xmin",
+"xmax", "ymin", and "ymax", in any order. If plotting multiple samples, it
+should be a matrix with sample IDs as column names and "xmin", "ymin",
+"xmax", and "ymax" as row names. If multiple samples are plotted but
+\code{bbox} is a vector rather than a matrix, then the same bounding box
+will be used for all samples. You may see points at the edge of the
+geometries if the intersection between the bounding box and a geometry
+happens to be a point there. If \code{NULL}, then the entire tissue is
+plotted.}
 }
 \value{
 A \code{patchwork} object
