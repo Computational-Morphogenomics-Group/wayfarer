@@ -394,7 +394,7 @@ It takes a few minutes to run
 df_lees_lmm <- df_lees |> 
     filter(condition != "non-expanded") |> 
     dplyr::rename(value = lee, group = condition, feature = pair) |> 
-    runBinLMM(BPPARAM = MulticoreParam(2))
+    runBinLMM(BPPARAM = SerialParam())
 ```
 
 What proportion of gene pairs have significant random effects?
