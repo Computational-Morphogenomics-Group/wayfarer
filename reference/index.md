@@ -1,0 +1,56 @@
+# Package index
+
+## All functions
+
+- [`Piezo1TxSpots()`](Piezo1-download.md)
+  [`Piezo1TissueBoundary()`](Piezo1-download.md)
+  [`Piezo1Binned()`](Piezo1-download.md)
+  [`Piezo1BinAnalyses()`](Piezo1-download.md) : Download Xenium data
+  from Xue et al.
+- [`clusterLeeCurves()`](clusterLeeCurves.md) : Cluster Lee's L curves
+- [`clusterMoranCurves()`](clusterMoranCurves.md) : Cluster Moran's I
+  curves
+- [`getBinOverlapProp()`](getBinOverlapProp.md) : Find portion of each
+  bin overlapping the tissue or cells
+- [`getCellChatDB()`](getCellChatDB.md) : Download CellChat database
+- [`getCellChatInfo()`](getCellChatInfo.md) : Filter Lee's L results for
+  gene pairs in CellChatDB
+- [`getMoranMeanVar()`](getMoranMeanVar.md) : Get the mean and variance
+  of Moran's I
+- [`makeAggregates()`](makeAggregates.md) : Aggregate transcript spots
+  into bins of varying sizes
+- [`plotClusterMedians()`](plotClusterMedians.md) : Plot cluster median
+  curves
+- [`plotEigenvalues()`](plotEigenvalues.md) : Plot variance explained
+  across bin sizes
+- [`plotLeeCurves()`](plotLeeCurves.md) : Plot Lee's L curves
+- [`plotLeeSelect()`](plotLeeSelect.md) : Plot select Lee's L curves
+- [`plotLoadingCurves()`](plotLoadingCurves.md) : Plot gene loadings of
+  a given principal component across scales
+- [`plotMoranCurves()`](plotMoranCurves.md) : Plot Moran's I curves
+- [`plotMoranPCs()`](plotMoranPCs.md) : Plot Moran's I of bin projection
+  in PCA space
+- [`plotSFEs()`](plotSFEs.md) : Plot gene expression from multiple SFE
+  objects
+- [`plotSFEsBiscale()`](plotSFEsBiscale.md) : Plot pairs of genes in
+  space from multiple SFE objects
+- [`plotSFEsRedDim()`](plotSFEsRedDim.md) : Plot dimension reduction in
+  space for multiple SFE objects
+- [`readBinSamples()`](readBinSamples.md) : Read one bin size from
+  multiple samples
+- [`readBins()`](readBins.md) : Read aggregated data from multiple bin
+  sizes for the same sample
+- [`readLeeSamples()`](readLeeSamples.md) : Read multi-sample Lee's L
+  results from multiple samples
+- [`readMoranSamples()`](readMoranSamples.md) : Read multi-scale Moran's
+  I results from multiple samples
+- [`removeEdgeBins()`](removeEdgeBins.md) : Remove bins that overlap too
+  little with the tissue boundary
+- [`runBinAnalyses()`](runBinAnalyses.md) : Run basic analyses on
+  aggregated SFE objects of all bin sizes
+- [`runBinLMM()`](runBinLMM.md) : Use linear mixed model to compare
+  among groups
+- [`sample_info`](sample_info.md) : Sample info for the Piezo1 Xenium
+  data
+- [`toMultifileParquet()`](toMultifileParquet.md) : Convert transcript
+  spot files to multi-file Parquet
