@@ -11,6 +11,7 @@ You can install the development version of Wayfarer from
 [GitHub](https://github.com/) with:
 
 ``` r
+
 # install.packages("pak")
 pak::pak("Computational-Morphogenomics-Group/wayfarer")
 ```

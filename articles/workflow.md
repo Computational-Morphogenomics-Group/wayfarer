@@ -27,6 +27,7 @@ Wayfarer to identify genes and gene co-expression whose multi-scale
 spatial patterns differ across conditions.
 
 ``` r
+
 library(Wayfarer)
 library(Voyager)
 library(SpatialFeatureExperiment)
@@ -61,6 +62,7 @@ The example dataset has been uploaded to OSF and can be downloaded with
 functions in the Wayfarer package.
 
 ``` r
+
 tb <- Piezo1TissueBoundary(sample = "expanded1")
 plot(st_geometry(tb))
 ```
@@ -70,15 +72,17 @@ plot(st_geometry(tb))
 Also download the transcript spots
 
 ``` r
+
 (tx_path <- Piezo1TxSpots("expanded1"))
-#>                                                          expanded1 
-#> "/home/runner/.cache/R/BiocFileCache/e0ccda281f8_expanded1.csv.gz"
+#>                                                           expanded1 
+#> "/home/runner/.cache/R/BiocFileCache/575f45d08548_expanded1.csv.gz"
 ```
 
 With the transcript spots, we can create spatial aggregates with a range
 of bin sizes (microns)
 
 ``` r
+
 (sides <- sort(c(2^(3:8), 12 * 2^(0:4))))
 #>  [1]   8  12  16  24  32  48  64  96 128 192 256
 ```
@@ -89,6 +93,7 @@ unlike in the Wayfarer paper, hexagonal bins rather than square ones are
 used here to show that hexagonal bins also work.
 
 ``` r
+
 binned_path <- makeAggregates(tx_path,
                               out_path = "expanded1", sample_id = "expanded1",
                               tech = "Xenium", tissue_boundary = tb, sides = sides,
@@ -101,18 +106,21 @@ vignette on GitHub Actions, the results have been uploaded to OSF and
 can be downloaded
 
 ``` r
+
 (binned_path <- Piezo1Binned("expanded1"))
 #>                                                           expanded1 
-#> "/home/runner/.cache/R/BiocFileCache/e0cc2108640f_expanded1.tar.gz"
+#> "/home/runner/.cache/R/BiocFileCache/575f5183b441_expanded1.tar.gz"
 ```
 
 Decompress it into the current directory
 
 ``` r
+
 untar(binned_path)
 ```
 
 ``` r
+
 min_props <- c(0.9, 0.9, 0.85, 0.85, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.3)
 names(min_props) <- sides
 ```
@@ -135,6 +143,7 @@ removing bins that overlap too little with the tissue:
 4.  Lee’s L on all gene pairs, with log normalized data
 
 ``` r
+
 runBinAnalyses("expanded1", "expanded1/bin_analyses", tissue_geometry = tb,
                min_props = min_props,
                BPPARAM = MulticoreParam(2, progressbar = TRUE))
@@ -144,9 +153,10 @@ Since the analyses can take a while to run, the results can also be
 downloaded from OSF
 
 ``` r
+
 (bin_analyses_path <- Piezo1BinAnalyses("expanded1"))
 #>                                                                        expanded1 
-#> "/home/runner/.cache/R/BiocFileCache/e0cc1598bc79_expanded1_bin_analyses.tar.gz"
+#> "/home/runner/.cache/R/BiocFileCache/575f308452d5_expanded1_bin_analyses.tar.gz"
 untar(bin_analyses_path)
 ```
 
@@ -155,6 +165,7 @@ untar(bin_analyses_path)
 Load one of the bin sizes to take a look, here 16 micron bin diameter
 
 ``` r
+
 (sfe <- readObject("expanded1/bin_analyses/bin16_esda/"))
 #> >>> Reading SpatialExperiment
 #> >>> Reading colgeometries
@@ -186,12 +197,14 @@ Load one of the bin sizes to take a look, here 16 micron bin diameter
 ```
 
 ``` r
+
 ElbowPlot(sfe)
 ```
 
 ![](workflow_files/figure-html/unnamed-chunk-12-1.png)
 
 ``` r
+
 plotReducedDim(sfe, "PCA", ncomponents = 4) + geom_density2d()
 ```
 
@@ -200,6 +213,7 @@ plotReducedDim(sfe, "PCA", ncomponents = 4) + geom_density2d()
 That circle in PC1 and PC2 looks interesting
 
 ``` r
+
 plotDimLoadings(sfe)
 ```
 
@@ -208,16 +222,19 @@ plotDimLoadings(sfe)
 Rotate the tissue to save space when plotting
 
 ``` r
+
 sfe <- rotateMinRect(sfe)
 ```
 
 ``` r
+
 plotSpatialFeature(sfe, "Col17a1")
 ```
 
 ![](workflow_files/figure-html/unnamed-chunk-16-1.png)
 
 ``` r
+
 spatialReducedDim(sfe, "PCA", ncomponents = 4, ncol = 1, divergent = TRUE, diverge_center = 0)
 ```
 
@@ -228,6 +245,7 @@ spatialReducedDim(sfe, "PCA", ncomponents = 4, ncol = 1, divergent = TRUE, diver
 Next see how Moran’s I changes with bin sizes in this sample
 
 ``` r
+
 df_moran <- read_csv("expanded1/bin_analyses/df_moran.csv")
 #> Rows: 1100 Columns: 4
 #> ── Column specification ────────────────────────────────────────────────────────
@@ -240,6 +258,7 @@ df_moran <- read_csv("expanded1/bin_analyses/df_moran.csv")
 ```
 
 ``` r
+
 plotMoranCurves(df_moran)
 ```
 
@@ -252,6 +271,7 @@ peak between 64 and 128 microns. We can cluster the curves to better
 visualize these different patterns:
 
 ``` r
+
 df_moran2 <- clusterMoranCurves(df_moran)
 names(df_moran2)
 #> [1] "moran"        "gene"         "side"         "sample"       "hclust"      
@@ -265,6 +285,7 @@ the original values and differences between adjacent bin sizes
 Plot the clusters
 
 ``` r
+
 plotMoranCurves(df_moran2, facet_by = "leiden")
 ```
 
@@ -273,6 +294,7 @@ plotMoranCurves(df_moran2, facet_by = "leiden")
 Plot the cluster medians
 
 ``` r
+
 plotClusterMedians(df_moran2, "leiden")
 ```
 
@@ -284,6 +306,7 @@ the null hypothesis of no spatial autocorrelation, and the 2.5% and
 bin sizes
 
 ``` r
+
 # Need to read all bin sizes for the spatial neighborhood graphs
 sfes <- readBins("expanded1/bin_analyses", sides = sides)
 #> >>> Reading SpatialExperiment
@@ -331,6 +354,7 @@ mean_vars <- getMoranMeanVar(sfes, "moran")
 ```
 
 ``` r
+
 plotMoranCurves(df_moran2, facet_by = "leiden", mean_vars = mean_vars,
                 show_null = TRUE)
 ```
@@ -344,6 +368,7 @@ that gene pairs with Lee’s L lower than 0.2 in all bin sizes will be
 removed.
 
 ``` r
+
 df_lee <-readLeeSamples("expanded1/bin_analyses", cutoff = 0.2)
 ```
 
@@ -351,6 +376,7 @@ Due to the large number of gene pairs, a smaller subset can be plotted
 to prevent the plot from becoming a solid block
 
 ``` r
+
 plotLeeCurves(df_lee, sample_n = 1000)
 ```
 
@@ -367,10 +393,12 @@ intermediate scales.
 Cluster Lee’s L curves to better visualize these patterns
 
 ``` r
+
 df_lee2 <- clusterLeeCurves(df_lee)
 ```
 
 ``` r
+
 plotLeeCurves(df_lee2, facet_by = "hclust_diffs", show_median = TRUE) +
     geom_hline(yintercept = 0, linetype = 2, color = "gray")
 ```
@@ -378,6 +406,7 @@ plotLeeCurves(df_lee2, facet_by = "hclust_diffs", show_median = TRUE) +
 ![](workflow_files/figure-html/unnamed-chunk-28-1.png)
 
 ``` r
+
 plotClusterMedians(df_lee2, "leiden")
 ```
 
@@ -397,6 +426,7 @@ where the number of bins is smaller.
 Here we plot gene expression in space in different bin sizes
 
 ``` r
+
 # Reduce empty space
 for (i in seq_along(sfes)) {
     sfes[[i]] <- rotateMinRect(sfes[[i]])
@@ -406,6 +436,7 @@ for (i in seq_along(sfes)) {
 Randomly select a gene from Leiden cluster 4
 
 ``` r
+
 set.seed(29)
 gene_use <- df_moran2 |> 
     filter(leiden == 4) |> 
@@ -414,6 +445,7 @@ gene_use <- df_moran2 |>
 ```
 
 ``` r
+
 plotSFEs(sfes[c("16", "48", "96", "256")], gene_use, show_sizes = TRUE, ncol = 1)
 ```
 
@@ -423,6 +455,7 @@ We can also make this kind of plot for Lee’s L, with a bivariate
 palette. Randomly select a gene pair
 
 ``` r
+
 set.seed(29)
 pair_use <- df_lee2 |> 
     filter(hclust_diffs == 4) |> 
@@ -433,6 +466,7 @@ pair_use <- df_lee2 |>
 ```
 
 ``` r
+
 plotSFEsBiscale(sfes[c("16", "48", "96", "256")], pair_use[1], pair_use[2], 
                 df_lee = df_lee, ncol = 1, legend_index = 1,
                 heights = rep(1, 5))
@@ -450,6 +484,7 @@ spatial scale is analyzed. Here we get which sample is from which
 biological condition
 
 ``` r
+
 data("sample_info")
 sample_info
 #> # A tibble: 8 × 2
@@ -470,6 +505,7 @@ while to run (1 and a half hours on my laptop with 4 cores), we can
 download the results from OSF to render the vignette fast.
 
 ``` r
+
 tbs <- Piezo1TissueBoundary("all")
 tx_paths <- Piezo1TxSpots("all")
 for (s in sample_info$sample[-1]) {
@@ -486,6 +522,7 @@ for (s in sample_info$sample[-1]) {
 ```
 
 ``` r
+
 # Download from OSF
 bin_analyses_dirs <- Piezo1BinAnalyses(sample = "all")
 for (s in bin_analyses_dirs[-1]) untar(s)
@@ -498,6 +535,7 @@ Moran’s I curve, with a random effect in intercept and slope so that
 each biological condition has its own intercept and slope.
 
 ``` r
+
 dirs_use <- file.path(sample_info$sample, "bin_analyses")
 df_morans <- readMoranSamples(dirs_use, sample_info = sample_info)
 ```
@@ -507,6 +545,7 @@ cells, their Moran’s I and Lee’s L curves are rather erratic. So they’re
 excluded from the following analyses.
 
 ``` r
+
 df_morans_lmm <- df_morans |> 
     filter(condition != "non-expanded") |> 
     dplyr::rename(value = moran, group = condition, feature = gene) |> 
@@ -522,6 +561,7 @@ df_morans_lmm <- df_morans |>
 What proportion of genes have significant random effects?
 
 ``` r
+
 mean(df_morans_lmm$p_random_adj < 0.05)
 #> [1] 0.6
 ```
@@ -529,6 +569,7 @@ mean(df_morans_lmm$p_random_adj < 0.05)
 What proportion have significant random slopes?
 
 ``` r
+
 mean(df_morans_lmm$p_slope_adj < 0.05)
 #> [1] 0.28
 ```
@@ -538,6 +579,7 @@ meaning either the intercept or the slope differ among different
 conditions.
 
 ``` r
+
 genes_use <- df_morans_lmm |> 
     filter(p_random_adj < 0.05) |> 
     slice_max(log_p_random_adj, n = 9) |> 
@@ -545,10 +587,12 @@ genes_use <- df_morans_lmm |>
 ```
 
 ``` r
+
 data("ditto_colors")
 ```
 
 ``` r
+
 df_morans |> 
     filter(gene %in% genes_use, condition != "non-expanded") |> 
     ggplot(aes(side, moran, group = sample)) +
@@ -565,6 +609,7 @@ Also plot genes with the most significant random slopes, i.e. slopes of
 the spline terms differ among conditions
 
 ``` r
+
 genes_use <- df_morans_lmm |> 
     filter(p_slope_adj < 0.05) |> 
     slice_max(log_p_slope_adj, n = 9) |> 
@@ -572,6 +617,7 @@ genes_use <- df_morans_lmm |>
 ```
 
 ``` r
+
 df_morans |> 
     filter(gene %in% genes_use, condition != "non-expanded") |> 
     ggplot(aes(side, moran, group = sample)) +
@@ -589,11 +635,13 @@ take into account the different variances of Moran’s I at different bin
 sizes. Plot one of these genes in space in different samples
 
 ``` r
+
 sfes <- readBinSamples(file.path(sample_info$sample, "bin_analyses"),
                        side = 32)
 ```
 
 ``` r
+
 # Reduce empty space
 for (i in seq_along(sfes)) {
     sfes[[i]] <- rotateMinRect(sfes[[i]])
@@ -601,6 +649,7 @@ for (i in seq_along(sfes)) {
 ```
 
 ``` r
+
 plotSFEs(sfes, "Lgr6", ncol = 2, widths = c(1,1), show_sizes = FALSE) &
     theme(legend.position = "none")
 ```
@@ -615,12 +664,14 @@ that have absolute values of Lee’s L below 0.2 for all bin sizes and all
 samples will be removed.
 
 ``` r
+
 df_lees <- readLeeSamples(dirs_use, sample_info = sample_info, cutoff = 0.2)
 ```
 
 It takes a few minutes to run
 
 ``` r
+
 df_lees_lmm <- df_lees |> 
     filter(condition != "non-expanded") |> 
     dplyr::rename(value = lee, group = condition, feature = pair) |> 
@@ -636,6 +687,7 @@ df_lees_lmm <- df_lees |>
 What proportion of gene pairs have significant random effects?
 
 ``` r
+
 mean(df_lees_lmm$p_random_adj < 0.05)
 #> [1] 0.6265244
 ```
@@ -643,6 +695,7 @@ mean(df_lees_lmm$p_random_adj < 0.05)
 What proportion have significant random slopes?
 
 ``` r
+
 mean(df_lees_lmm$p_slope_adj < 0.05)
 #> [1] 0.245122
 ```
@@ -650,12 +703,14 @@ mean(df_lees_lmm$p_slope_adj < 0.05)
 Plot the gene pairs with the most significant random effects
 
 ``` r
+
 pairs_use <- df_lees_lmm |> 
     slice_max(log_p_random_adj, n = 9) |> 
     pull(feature)
 ```
 
 ``` r
+
 df_lees |> 
     filter(condition != "non-expanded") |> 
     dplyr::rename(group = condition) |> 
@@ -672,12 +727,14 @@ PI7 more like that at PI14.
 Also plot gene pairs with the most significant random slopes
 
 ``` r
+
 pairs_use <- df_lees_lmm |> 
     slice_max(log_p_slope_adj, n = 9) |> 
     pull(feature)
 ```
 
 ``` r
+
 df_lees |> 
     filter(condition != "non-expanded") |> 
     dplyr::rename(group = condition) |> 
@@ -689,17 +746,20 @@ df_lees |>
 Plot one of the gene pairs in space
 
 ``` r
+
 sfes <- readBinSamples(file.path(sample_info$sample, "bin_analyses"),
                        side = 128)
 ```
 
 ``` r
+
 # get rid of that one annoying bin from a smaller piece of tissue
 sfes[[6]] <- findDebrisCells(sfes[[6]], distance_cutoff = 300)
 sfes[[6]] <- sfes[[6]][,!sfes[[6]]$is_debris]
 ```
 
 ``` r
+
 # Reduce empty space
 for (i in seq_along(sfes)) {
     sfes[[i]] <- rotateMinRect(sfes[[i]])
@@ -707,6 +767,7 @@ for (i in seq_along(sfes)) {
 ```
 
 ``` r
+
 plotSFEsBiscale(sfes, "Ldhb", "Pfkm", df_lees, ncol = 2, widths = c(1,1), 
                 show_sizes = FALSE, side_use = 64, legend_index = 6)
 ```
@@ -721,6 +782,7 @@ without actually using the CellChat package (which is not on CRAN or
 Bioconductor).
 
 ``` r
+
 df_lee_pathways <- getCellChatInfo(df_lees_lmm, genes = rownames(sfes[[1]]),
                                    species = "mouse")
 df_lee_pathways
@@ -748,11 +810,13 @@ df_lee_pathways
 Plot these gene pairs that are in CellChat’s database
 
 ``` r
+
 pairs_use <- df_lee_pathways |> 
     pull(pair) |> unique()
 ```
 
 ``` r
+
 df_lees |> 
     filter(condition != "non-expanded") |> 
     dplyr::rename(group = condition) |> 
@@ -764,6 +828,7 @@ df_lees |>
 Plot one of them in space
 
 ``` r
+
 plotSFEsBiscale(sfes, "Itgb1", "Tnc", df_lees, ncol = 2, widths = c(1,1), 
                 show_sizes = FALSE, side_use = 64, legend_index = 6)
 ```
@@ -771,6 +836,7 @@ plotSFEsBiscale(sfes, "Itgb1", "Tnc", df_lees, ncol = 2, widths = c(1,1),
 ![](workflow_files/figure-html/unnamed-chunk-65-1.png)
 
 ``` r
+
 # Clean up
 unlink(sample_info$sample, recursive = TRUE)
 ```
@@ -778,8 +844,9 @@ unlink(sample_info$sample, recursive = TRUE)
 ## Session info
 
 ``` r
+
 sessionInfo()
-#> R Under development (unstable) (2026-04-26 r89963)
+#> R version 4.6.0 (2026-04-24)
 #> Platform: x86_64-pc-linux-gnu
 #> Running under: Ubuntu 24.04.4 LTS
 #> 
@@ -804,104 +871,104 @@ sessionInfo()
 #> 
 #> other attached packages:
 #>  [1] R.utils_2.13.0                  R.oo_1.27.1                    
-#>  [3] R.methodsS3_1.8.2               scater_1.39.4                  
-#>  [5] scuttle_1.21.6                  SingleCellExperiment_1.33.2    
-#>  [7] SummarizedExperiment_1.41.1     Biobase_2.71.0                 
-#>  [9] GenomicRanges_1.63.2            Seqinfo_1.1.0                  
-#> [11] IRanges_2.45.0                  S4Vectors_0.49.3               
-#> [13] BiocGenerics_0.57.1             generics_0.1.4                 
-#> [15] MatrixGenerics_1.23.0           matrixStats_1.5.0              
+#>  [3] R.methodsS3_1.8.2               scater_1.41.1                  
+#>  [5] scuttle_1.23.1                  SingleCellExperiment_1.35.1    
+#>  [7] SummarizedExperiment_1.43.0     Biobase_2.73.1                 
+#>  [9] GenomicRanges_1.65.0            Seqinfo_1.3.0                  
+#> [11] IRanges_2.47.2                  S4Vectors_0.51.3               
+#> [13] BiocGenerics_0.59.6             generics_0.1.4                 
+#> [15] MatrixGenerics_1.25.0           matrixStats_1.5.0              
 #> [17] tidyr_1.3.2                     purrr_1.2.2                    
 #> [19] stringr_1.6.0                   ggplot2_4.0.3                  
 #> [21] readr_2.2.0                     dplyr_1.2.1                    
-#> [23] alabaster.sfe_1.3.0             alabaster.base_1.11.4          
-#> [25] BiocParallel_1.45.0             sf_1.1-0                       
-#> [27] Voyager_1.13.1                  SpatialFeatureExperiment_1.13.2
-#> [29] Wayfarer_0.99.0                 BiocStyle_2.39.0               
+#> [23] alabaster.sfe_1.5.0             alabaster.base_1.13.0          
+#> [25] BiocParallel_1.47.0             sf_1.1-1                       
+#> [27] Voyager_1.15.0                  SpatialFeatureExperiment_1.13.2
+#> [29] Wayfarer_0.99.0                 BiocStyle_2.41.0               
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] fs_2.1.0                  spatialreg_1.4-3         
-#>   [3] bitops_1.0-9              EBImage_4.53.0           
+#>   [3] bitops_1.0-9              EBImage_4.55.0           
 #>   [5] httr_1.4.8                RColorBrewer_1.1-3       
-#>   [7] numDeriv_2016.8-1.1       tools_4.7.0              
+#>   [7] numDeriv_2016.8-1.1       tools_4.6.0              
 #>   [9] backports_1.5.1           utf8_1.2.6               
-#>  [11] R6_2.6.1                  HDF5Array_1.39.1         
-#>  [13] rhdf5filters_1.23.3       withr_3.0.2              
+#>  [11] R6_2.6.1                  HDF5Array_1.41.0         
+#>  [13] rhdf5filters_1.25.0       withr_3.0.2              
 #>  [15] sp_2.2-1                  gridExtra_2.3            
 #>  [17] cli_3.6.6                 textshaping_1.0.5        
-#>  [19] RBioFormats_1.11.0        isoband_0.3.0            
+#>  [19] RBioFormats_1.13.0        isoband_0.3.0            
 #>  [21] sandwich_3.1-1            labeling_0.4.3           
-#>  [23] marginaleffects_0.32.0    alabaster.se_1.11.0      
-#>  [25] sass_0.4.10               mvtnorm_1.3-7            
-#>  [27] arrow_23.0.1.2            S7_0.2.2                 
+#>  [23] marginaleffects_0.32.0    alabaster.se_1.13.0      
+#>  [25] sass_0.4.10               mvtnorm_1.4-0            
+#>  [27] arrow_24.0.0              S7_0.2.2                 
 #>  [29] proxy_0.4-29              pkgdown_2.2.0            
 #>  [31] systemfonts_1.3.2         scico_1.5.0              
-#>  [33] limma_3.67.3              RSQLite_2.4.6            
+#>  [33] limma_3.69.2              RSQLite_3.53.1           
 #>  [35] httpcode_0.3.0            vroom_1.7.1              
 #>  [37] spdep_1.4-2               Matrix_1.7-5             
 #>  [39] ggbeeswarm_0.7.3          abind_1.4-8              
-#>  [41] terra_1.9-11              lifecycle_1.0.5          
+#>  [41] terra_1.9-27              lifecycle_1.0.5          
 #>  [43] multcomp_1.4-30           yaml_2.3.12              
-#>  [45] edgeR_4.9.9               rhdf5_2.55.16            
-#>  [47] SparseArray_1.11.13       BiocFileCache_3.1.0      
-#>  [49] grid_4.7.0                blob_1.3.0               
+#>  [45] edgeR_4.11.1              rhdf5_2.57.1             
+#>  [47] SparseArray_1.13.2        BiocFileCache_3.3.0      
+#>  [49] grid_4.6.0                blob_1.3.0               
 #>  [51] dqrng_0.4.1               crayon_1.5.3             
-#>  [53] alabaster.spatial_1.11.1  lattice_0.22-9           
-#>  [55] beachmat_2.27.5           magick_2.9.1             
+#>  [53] alabaster.spatial_1.13.0  lattice_0.22-9           
+#>  [55] beachmat_2.29.0           magick_2.9.1             
 #>  [57] zeallot_0.2.0             pillar_1.11.1            
 #>  [59] knitr_1.51                rjson_0.2.23             
 #>  [61] osfr_0.2.9                boot_1.3-32              
 #>  [63] sfarrow_0.4.1             codetools_0.2-20         
 #>  [65] wk_0.9.5                  glue_1.8.1               
-#>  [67] data.table_1.18.2.1       memuse_4.2-3             
+#>  [67] data.table_1.18.4         memuse_4.2-3             
 #>  [69] urltools_1.7.3.1          vctrs_0.7.3              
 #>  [71] png_0.1-9                 Rdpack_2.6.6             
 #>  [73] gtable_0.3.6              assertthat_0.2.1         
-#>  [75] cachem_1.1.0              xfun_0.57                
-#>  [77] rbibutils_2.4.1           S4Arrays_1.11.1          
-#>  [79] DropletUtils_1.31.1       coda_0.19-4.1            
+#>  [75] cachem_1.1.0              xfun_0.58                
+#>  [77] rbibutils_2.4.1           S4Arrays_1.13.0          
+#>  [79] DropletUtils_1.33.0       coda_0.19-4.1            
 #>  [81] reformulas_0.4.4          survival_3.8-6           
 #>  [83] sfheaders_0.4.5           rJava_1.0-18             
-#>  [85] units_1.0-1               statmod_1.5.1            
-#>  [87] bluster_1.21.1            TH.data_1.1-5            
-#>  [89] nlme_3.1-169              bit64_4.8.0              
-#>  [91] alabaster.ranges_1.11.0   filelock_1.0.3           
-#>  [93] bslib_0.10.0              irlba_2.3.7              
+#>  [85] units_1.0-1               statmod_1.5.2            
+#>  [87] bluster_1.23.0            TH.data_1.1-5            
+#>  [89] nlme_3.1-169              bit64_4.8.2              
+#>  [91] alabaster.ranges_1.13.0   filelock_1.0.3           
+#>  [93] bslib_0.11.0              irlba_2.3.7              
 #>  [95] vipor_0.4.7               KernSmooth_2.23-26       
-#>  [97] spData_2.3.4              DBI_1.3.0                
+#>  [97] spData_2.3.5              DBI_1.3.0                
 #>  [99] tidyselect_1.2.1          bit_4.6.0                
-#> [101] compiler_4.7.0            curl_7.1.0               
-#> [103] httr2_1.2.2               BiocNeighbors_2.5.4      
-#> [105] h5mread_1.3.3             xml2_1.5.2               
-#> [107] desc_1.4.3                DelayedArray_0.37.1      
+#> [101] compiler_4.6.0            curl_7.1.0               
+#> [103] httr2_1.2.2               BiocNeighbors_2.7.2      
+#> [105] h5mread_1.5.0             xml2_1.5.2               
+#> [107] desc_1.4.3                DelayedArray_0.39.3      
 #> [109] triebeard_0.4.1           bookdown_0.46            
 #> [111] scales_1.4.0              classInt_0.4-11          
 #> [113] rappdirs_0.3.4            tiff_0.1-12              
-#> [115] SpatialExperiment_1.21.0  digest_0.6.39            
+#> [115] SpatialExperiment_1.23.0  digest_0.6.39            
 #> [117] fftwtools_0.9-11          minqa_1.2.8              
-#> [119] alabaster.matrix_1.11.0   rmarkdown_2.31           
-#> [121] XVector_0.51.0            htmltools_0.5.9          
+#> [119] alabaster.matrix_1.13.0   rmarkdown_2.31           
+#> [121] XVector_0.53.0            htmltools_0.5.9          
 #> [123] pkgconfig_2.0.3           jpeg_0.1-11              
-#> [125] lme4_2.0-1                sparseMatrixStats_1.23.0 
+#> [125] lme4_2.0-1                sparseMatrixStats_1.25.0 
 #> [127] dbplyr_2.5.2              fastmap_1.2.0            
 #> [129] rlang_1.2.0               htmlwidgets_1.6.4        
-#> [131] DelayedMatrixStats_1.33.0 farver_2.1.2             
+#> [131] DelayedMatrixStats_1.35.0 farver_2.1.2             
 #> [133] jquerylib_0.1.4           zoo_1.8-15               
 #> [135] biscale_1.1.0             jsonlite_2.0.0           
-#> [137] BiocSingular_1.27.1       RCurl_1.98-1.18          
-#> [139] magrittr_2.0.5            s2_1.1.9                 
-#> [141] patchwork_1.3.2           Rhdf5lib_1.99.6          
+#> [137] BiocSingular_1.29.0       RCurl_1.98-1.19          
+#> [139] magrittr_2.0.5            s2_1.1.11                
+#> [141] patchwork_1.3.2           Rhdf5lib_2.1.0           
 #> [143] Rcpp_1.1.1-1.1            ggnewscale_0.5.2         
 #> [145] viridis_0.6.5             stringi_1.8.7            
-#> [147] alabaster.schemas_1.11.0  MASS_7.3-65              
-#> [149] parallel_4.7.0            ggrepel_0.9.8            
-#> [151] deldir_2.0-4              splines_4.7.0            
+#> [147] alabaster.schemas_1.13.0  MASS_7.3-65              
+#> [149] parallel_4.6.0            ggrepel_0.9.8            
+#> [151] deldir_2.0-4              splines_4.6.0            
 #> [153] hms_1.1.4                 locfit_1.5-9.12          
-#> [155] igraph_2.3.0              ScaledMatrix_1.19.0      
+#> [155] igraph_2.3.2              ScaledMatrix_1.21.0      
 #> [157] LearnBayes_2.15.2         crul_1.6.0               
 #> [159] evaluate_1.0.5            BiocManager_1.30.27      
 #> [161] tzdb_0.5.0                nloptr_2.2.1             
-#> [163] alabaster.sce_1.11.0      rsvd_1.0.5               
+#> [163] alabaster.sce_1.13.0      rsvd_1.0.5               
 #> [165] e1071_1.7-17              RSpectra_0.16-2          
 #> [167] viridisLite_0.4.3         class_7.3-23             
 #> [169] ragg_1.5.2                tibble_3.3.1             
