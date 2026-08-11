@@ -115,7 +115,7 @@ untar(bin_analyses_path)
 Next see how Moran's I changes with bin sizes in this sample
 
 ```{r}
-df_moran <- read_csv("expanded1/bin_analyses/df_moran.csv")
+df_moran <- read_csv("vignettes/expanded1/bin_analyses/df_moran.csv")
 ```
 
 ```{r}
@@ -159,7 +159,7 @@ plotMoranCurves(df_moran2, facet_by = "leiden", mean_vars = mean_vars,
 ## Lee's L curves
 Also read Lee's L; to make clustering easier, a cutoff of 0.2 is set so that gene pairs with Lee's L lower than 0.2 in all bin sizes will be removed.
 ```{r}
-df_lee <-readLeeSamples("expanded1/bin_analyses", cutoff = 0.2)
+df_lee <-readLeeSamples("vignettes/expanded1/bin_analyses", cutoff = 0.2)
 ```
 
 Due to the large number of gene pairs, a smaller subset can be plotted to prevent the plot from becoming a solid block
