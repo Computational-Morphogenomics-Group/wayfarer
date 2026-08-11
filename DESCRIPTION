@@ -15,6 +15,7 @@ Description: This package performs spatial binning at different resolutions and
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
+    afex,
     alabaster.base,
     alabaster.sfe,
     arrow,
@@ -23,11 +24,13 @@ Imports:
     biscale,
     bluster,
     dplyr,
+    emmeans,
     ggplot2,
     lmerTest,
     Matrix,
     osfr,
     patchwork,
+    performance,
     rlang,
     scales,
     scico,
