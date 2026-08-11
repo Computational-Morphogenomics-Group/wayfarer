@@ -31,16 +31,16 @@
 #'   "binx_esda". A data frame for Moran's I and  Lee's L across bin sizes will
 #'   be written to \code{out_path} as CSV files. The "esda" means that
 #'   exploratory spatial data analysis (ESDA) has been performed.
-#' @importFrom scater logNormCounts runPCA addPerCellQC
+#' @importFrom scrapper runPca.se normalizeRnaCounts.se quickRnaQc.se
 #' @importFrom SingleCellExperiment counts counts<-
 #' @importFrom Voyager runMoransI calculateBivariate
 #' @importFrom alabaster.base readObject
-#' @importFrom SpatialFeatureExperiment sampleIDs
+#' @importFrom SpatialFeatureExperiment sampleIDs findSpatialNeighbors colGraph<- SpatialFeatureExperiment
 #' @importFrom dplyr mutate bind_rows
 #' @importFrom tidyr pivot_longer unite
 #' @export
 runBinAnalyses <- function(dir, out_path, tissue_geometry,
-                           min_props = 0.9, quantiles = NULL,
+                           min_props = 0.8, quantiles = NULL,
                            ncomponents = 30, queen = FALSE,
                            zero.policy = TRUE, p.adjust.method = "BH",
                            neg_regex = c("^NegPrb", "^Blank", "^BLANK", "^NegControl", "Unassigned"),
@@ -83,6 +83,7 @@ runBinAnalyses <- function(dir, out_path, tissue_geometry,
     morans_out <- list()
     for (i in seq_along(bins_dir)) {
         d <- bins_dir[i]
+        if (dir.exists(file.path(out_path, paste(basename(d), "esda", sep = "_")))) next
         cat("Reading", basename(d), "\n")
         sfe <- readObject(d)
         cat("Removing edge bins\n")
@@ -90,6 +91,7 @@ runBinAnalyses <- function(dir, out_path, tissue_geometry,
         overlap_props <- getBinOverlapProp(sfe, tissue_geometry, BPPARAM = BPPARAM,
                                            batch_size = bs)
         sfe$overlap_props <- overlap_props
+        sample_use <- sampleIDs(sfe)
         sfe <- removeEdgeBins(sfe, overlap_props, min_prop = min_props[bin_sizes[i]],
                               quantile = quantiles[bin_sizes[i]])
         if (ncol(sfe) < 10) {
@@ -98,32 +100,35 @@ runBinAnalyses <- function(dir, out_path, tissue_geometry,
         }
         # Remove negative control features
         pattern <- paste(neg_regex, collapse = "|")
-        sfe <- sfe[!grepl(pattern, rownames(sfe)),]
         cat("Normalizing data\n")
         counts(sfe) <- as(counts(sfe), "CsparseMatrix")
-        sfe <- addPerCellQC(sfe)
-        sfe <- sfe[,sfe$sum > 0]
-        sfe <- logNormCounts(sfe, size.factors = sfe$overlap_props)
-        cat("Running PCA\n")
-        sfe <- runPCA(sfe, ncomponents = ncomponents, scale = TRUE)
+        is_neg <- grepl(pattern, rownames(sfe))
+        sfe <- quickRnaQc.se(sfe, subsets = list(negative = is_neg))
+        sfe <- sfe[!is_neg,]
+        sfe <- sfe[, Matrix::colSums(counts(sfe)) > 0]
+        sfe <- normalizeRnaCounts.se(sfe, center = FALSE)
         cat("Running Moran's I\n")
         colGraph(sfe, "poly2nb") <- findSpatialNeighbors(sfe, type = "bins",
                                                          method = "poly2nb", queen = queen)
-        sfe <- runMoransI(sfe, zero.policy = zero.policy, BPPARAM = BPPARAM)
+        sfe <- runMoransI(sfe, zero.policy = zero.policy, BPPARAM = BPPARAM, NAOK = TRUE)
         nm <- paste("moran", sampleIDs(sfe), sep = "_")
         morans_out[[bin_sizes[i]]] <- data.frame(moran = rowData(sfe)[[nm]],
                                                  gene = rownames(sfe),
                                                  side = bin_sizes[i] |> as.integer())
-        cat("Saving SFE basis analysis\n")
+        cat("Saving SFE basic analysis\n")
         saveObject(sfe, file.path(out_path, paste(basename(d), "esda", sep = "_")))
         cat("Running Lee's L\n")
         lees_out[[bin_sizes[i]]] <- calculateBivariate(sfe, "lee", feature1 = rownames(sfe))
     }
     # Re-format all the Moran's I results into a data frame
+    if (!length(morans_out)) {
+        warning("Analyses could not be performed for this sample because the tissue is too fragmented")
+        return(NULL)
+    }
     df_moran <- bind_rows(morans_out)
-    df_moran$sample <- sampleIDs(sfe)
+    df_moran$sample <- sample_use
     df_lee <- .get_df_lee(lees_out)
-    df_lee$sample <- sampleIDs(sfe)
+    df_lee$sample <- sample_use
     write.csv(df_moran, file.path(out_path, "df_moran.csv"), quote = FALSE,
               row.names = FALSE)
     write.csv(df_lee, file.path(out_path, "df_lee.csv"), quote = FALSE,
@@ -149,7 +154,10 @@ runBinAnalyses <- function(dir, out_path, tissue_geometry,
 
 .get_df_lee <- function(lees, symbol_df = NULL) {
     lees <- lapply(lees, as.matrix)
-    rns <- sort(rownames(lees[[1]]))
+    rns_int <- as.integer(rownames(lees[[1]]))
+    if (!any(is.na(rns_int))) {
+        rns <- sort(rns_int) |> as.character()
+    } else rns <- sort(rownames(lees[[1]]))
     lees <- lapply(lees, function(x) x[rns, rns])
     if (!is.null(symbol_df)) {
         lees <- lapply(lees, function(x) {

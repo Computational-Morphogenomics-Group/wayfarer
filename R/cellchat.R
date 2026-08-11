@@ -44,7 +44,5 @@ getCellChatInfo <- function(df_lees_lmm, genes, species = c("human", "mouse"),
     df_lee_pathways |>
         mutate(interaction_name = cc_int_sub2[interaction]) |>
         left_join(ccdb$interaction, by = "interaction_name") |>
-        unite("pair", gene1, gene2) |>
-        filter(p_slope_adj < 0.05 | p_random_adj < 0.05 | p_main_adj < 0.05) |>
-        arrange(p_slope_adj)
+        unite("pair", gene1, gene2)
 }

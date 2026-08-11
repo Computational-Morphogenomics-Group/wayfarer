@@ -6,6 +6,7 @@
 \alias{Piezo1TissueBoundary}
 \alias{Piezo1Binned}
 \alias{Piezo1BinAnalyses}
+\alias{Piezo1Xenium}
 \title{Download Xenium data from Xue et al.}
 \usage{
 Piezo1TxSpots(
@@ -27,6 +28,12 @@ Piezo1Binned(
 )
 
 Piezo1BinAnalyses(
+  sample = c("all", "expanded1", "expanded2", "expanded1_pi7", "expanded2_pi7",
+    "nonexpanded1", "nonexpanded2", "yoda1", "yoda2"),
+  bfc = BiocFileCache()
+)
+
+Piezo1Xenium(
   sample = c("all", "expanded1", "expanded2", "expanded1_pi7", "expanded2_pi7",
     "nonexpanded1", "nonexpanded2", "yoda1", "yoda2"),
   bfc = BiocFileCache()

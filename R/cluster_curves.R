@@ -30,8 +30,7 @@
 #' @return The same data frame in the input but with cluster assignment of each
 #' gene added.
 #' @importFrom tibble tibble rownames_to_column column_to_rownames
-#' @importFrom dplyr select rename left_join mutate filter if_any group_by
-#'   summarize
+#' @importFrom dplyr select rename left_join mutate filter if_any group_by summarize
 #' @importFrom tidyr unnest pivot_wider pivot_longer unite
 #' @importFrom SingleCellExperiment rowData
 #' @importFrom bluster clusterRows HclustParam NNGraphParam

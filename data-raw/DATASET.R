@@ -13,6 +13,10 @@ library(sf)
 library(sfheaders)
 library(R.utils)
 library(SpatialFeatureExperiment)
+library(stringr)
+library(Matrix)
+library(alabaster.sfe)
+library(R.utils)
 
 ds <- open_dataset("expanded2_transcripts.csv.gz", format = "csv")
 write_dataset(ds, "expanded2", format = "feather") # file is not smaller
@@ -40,13 +44,8 @@ for (f in fns) tx_slim(f)
 # Great, the file sizes are greatly reduced. I think they're small enough for
 # a vignette that has to be run on GitHub Actions and Bioc's website.
 
-# Next, make the cell polygons and centroids
-make_cells_tx <- function(fn) {
-    df <- read_csv(fn)
-    name <- str_remove(fn, "\\.csv\\.gz$")
-    out_name <- paste0(name, "_cells.rds")
-    if (file.exists(out_name)) return(out_name)
-    df <- df |>
+.tx2polygons <- function(df) {
+    df |>
         group_by(cell_id) |>
         group_nest() |>
         mutate(data = map(data,
@@ -59,6 +58,15 @@ make_cells_tx <- function(fn) {
         select(-nrow) |>
         unnest(cols = data) |>
         sf_polygon(x = "x_location", y = "y_location", polygon_id = "cell_id")
+}
+
+# Next, make the cell polygons and centroids
+make_cells_tx <- function(fn) {
+    df <- read_csv(fn)
+    name <- str_remove(fn, "\\.csv\\.gz$")
+    out_name <- paste0(name, "_cells.rds")
+    if (file.exists(out_name)) return(out_name)
+    df <- .tx2polygons(df)
 
     df$centroids <- st_centroid(df$geometry)
     saveRDS(df, out_name)
@@ -98,3 +106,49 @@ for (cmd in cmds) system(cmd)
 
 cmds2 <- paste0("tar -czvf ", dirs, "_bin_analyses.tar.gz ", dirs, "/bin_analyses")
 for (cmd in cmds2) system(cmd)
+
+# Make single cell level SFE
+
+tx_spots <- Piezo1TxSpots()
+samples <- str_remove(basename(tx_spots), "^[0-9a-z]+_")
+samples <- str_remove(samples, ".csv.gz$")
+
+for (i in seq_along(samples)[1]) {
+    df <- read_csv(tx_spots[[i]])
+    geometries <- df |>
+        group_by(cell_id) |>
+        group_nest() |>
+        mutate(data = map(data,
+                          function(df) {
+                              st_multipoint(as.matrix(df[,c("x_location", "y_location")]))
+                          }),
+               data = st_as_sfc(data)) |>
+        rename(geometry = data) |>
+        st_sf()
+    mat <- Matrix::readMM(list.files(samples[[i]], "matrix.mtx.gz", full.names = TRUE))
+    bc <- read_tsv(list.files(samples[[i]], "barcodes.tsv.gz", full.names = TRUE),
+                   col_names = FALSE)
+    rd <- read_tsv(list.files(samples[[i]], "features.tsv.gz", full.names = TRUE),
+                   col_names = c("ID", "Symbol", "Type"))
+    colnames(mat) <- bc$X1
+    cent <- st_centroid(geometries)
+    mat <- mat[,cent$cell_id]
+    sfe <- SpatialFeatureExperiment(assays = list(counts = mat), rowData = rd,
+                                    spatialCoords = st_coordinates(cent),
+                                    spatialCoordsNames = c("X", "Y"))
+    saveObject(sfe, paste(samples[[i]], "xenium", sep = "_"))
+}
+
+xenium_paths <- list.files(pattern = "_xenium$")
+for (p in xenium_paths) {
+    tar(paste0(p, ".tar.gz"), p, compression = "gzip")
+}
+
+# compress binned output
+for (s in samples) {
+    fp <- file.path("vignettes", s)
+    files1 <- list.files(fp, "^bin", full.names = TRUE)
+    tar(file.path("binned", paste0(s, ".tar.gz")), files1, compression = "gzip")
+    files2 <- file.path(fp, "bin_analyses")
+    tar(file.path("processed", paste0(s, ".tar.gz")), files2, compression = "gzip")
+}

@@ -75,16 +75,14 @@ getMoranMeanVar <- function(sfes, name = c("moran", "geary")) {
 #'   hypothesis from \code{\link{getMoranMeanVar}}, required for \code{show_null
 #'   = TRUE}.
 #' @param title_name Name of the metric to put on the plot title.
-#' @importFrom ggplot2 ggplot aes geom_line scale_x_continuous ggtitle
-#'   scale_color_viridis_c facet_wrap geom_ribbon labs scale_color_manual
+#' @importFrom ggplot2 ggplot aes geom_line scale_x_continuous ggtitle scale_color_viridis_c facet_wrap geom_ribbon labs scale_color_manual
 #' @importFrom rlang .data
 #' @importFrom spdep moran.test geary.test
 #' @importFrom SpatialFeatureExperiment colGraph
 #' @importFrom SingleCellExperiment logcounts counts
 #' @importFrom scales breaks_log
 #' @importFrom stats qnorm
-#' @importFrom ggplot2 ggplot geom_line aes scale_color_viridis_c
-#'   scale_color_manual scale_x_continuous facet_wrap geom_ribbon labs
+#' @importFrom ggplot2 ggplot geom_line aes scale_color_viridis_c scale_color_manual scale_x_continuous facet_wrap geom_ribbon labs
 #' @return A \code{ggplot} object.
 #' @export
 plotMoranCurves <- function(df, name = "moran", color_by = NULL, facet_by = NULL,

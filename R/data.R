@@ -23,7 +23,8 @@
     sample
 }
 .dl_sample1 <- function(sample, bfc, type = c("tx_spots", "tissue_boundary",
-                                              "binned", "binned_esda", "cellchat")) {
+                                              "binned", "binned_esda", "cellchat",
+                                              "xenium")) {
     # Download 1 sample
     type <- match.arg(type)
     url <- switch(type,
@@ -31,13 +32,15 @@
                   tissue_boundary = "https://osf.io/4mxa8",
                   binned = "https://osf.io/kmhdt",
                   binned_esda = "https://osf.io/sk2nq",
-                  cellchat = "https://osf.io/4p8yx")
+                  cellchat = "https://osf.io/4p8yx",
+                  xenium = "https://osf.io/xjnw3")
     suff <- switch(type,
                    tx_spots = ".csv.gz",
                    tissue_boundary = "_tb.rds",
                    binned = ".tar.gz",
-                   binned_esda = "_bin_analyses.tar.gz",
-                   cellchat = ".rds")
+                   binned_esda = ".tar.gz",
+                   cellchat = ".rds",
+                   xenium = "_xenium.tar.gz")
     fnm <- paste0(sample, suff)
     q <- bfcquery(bfc, fnm, exact = TRUE)
     n <- nrow(q)
@@ -117,6 +120,10 @@ Piezo1Binned <- .make_dl_function("binned")
 #' @rdname Piezo1-download
 #' @export
 Piezo1BinAnalyses <- .make_dl_function("binned_esda")
+
+#' @rdname Piezo1-download
+#' @export
+Piezo1Xenium <- .make_dl_function("xenium")
 
 #' Sample info for the Piezo1 Xenium data
 #'

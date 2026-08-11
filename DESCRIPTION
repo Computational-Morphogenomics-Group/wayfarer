@@ -25,12 +25,13 @@ Imports:
     dplyr,
     ggplot2,
     lmerTest,
+    Matrix,
     osfr,
     patchwork,
     rlang,
     scales,
-    scater,
     scico,
+    scrapper,
     SingleCellExperiment,
     sf,
     SpatialFeatureExperiment (>= 1.13.2),
@@ -45,21 +46,24 @@ Imports:
     zeallot
 Suggests:
     BiocStyle,
+    ggforce,
+    ggrepel,
     igraph,
     knitr,
     purrr,
     readr,
     rmarkdown,
     R.utils,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    WCluster
 biocViews:
     Transcriptomics,
     Spatial,
     GeneExpression, 
     SingleCell
-RoxygenNote: 7.3.3
 VignetteBuilder: knitr
 Depends: 
     R (>= 4.1.0)
 LazyData: true
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0

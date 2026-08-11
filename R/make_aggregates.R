@@ -43,8 +43,7 @@
 #'   \code{out_path} named "binx" where "x" is the bin size, e.g. "bin12" for 12
 #'   micron bins.
 #' @export
-#' @importFrom SpatialFeatureExperiment .check_tx_file getTechTxFields
-#'   aggregateTx crop colGeometry
+#' @importFrom SpatialFeatureExperiment .check_tx_file getTechTxFields aggregateTx crop colGeometry centroids<-
 #' @importFrom alabaster.sfe saveObject
 #' @importFrom arrow open_dataset write_dataset
 #' @importFrom rlang .data
@@ -67,6 +66,9 @@ makeAggregates <- function(tx_file, out_path,
     if (!is.null(tissue_boundary) && !any(class(tissue_boundary) %in% c("sf", "sfc", "sfg"))) {
         stop("tissue_boundary must be sf, sfc, or sfg")
     }
+    args <- list(...)
+    is_square <- !"square" %in% names(args) | isTRUE(args$square)
+
     if (tech != "other") {
         c(spatialCoordsNames, gene_col, cell_col, fn) %<-%
             getTechTxFields(tech, NULL)
@@ -92,17 +94,51 @@ makeAggregates <- function(tx_file, out_path,
         gene_col <-  "gene"
     } else fp <- tx_file
 
-    for (s in sides) {
-        cat("Processing", s, "\n")
-        sfe <- aggregateTx(fp, cellsize = s, sample_id = sample_id,
-                           spatialCoordsNames = spatialCoordsNames[1:2],
-                           flip_geometry = flip_geometry, gene_col = gene_col,
-                           save_memory = TRUE, BPPARAM = BPPARAM, ...)
-        if (!is.null(tissue_boundary))
-            sfe <- crop(sfe, tissue_boundary, keep_whole = "col")
-        saveObject(sfe, file.path(out_path, paste0("bin", s)))
-        gc()
+    # Aggregate the smaller bins rather than transcripts for square bins when
+    # smaller bins are nested in larger ones
+    if (is_square) {
+        nesting <- vapply(seq_along(sides), \(i) {
+            x <- sides[[i]]
+            ind <- which((x %% sides[sides<x]) < 1)
+            if (!length(ind)) return(i)
+            which.max(sides[ind])
+        }, FUN.VALUE = integer(1))
+        # To store the smaller bins to be aggregated into larger ones when nested
+        sfes <- vector("list", length = length(sides))
+        for (i in seq_along(sides)) {
+            if (i == nesting[[i]]) {
+                sfe <- aggregateTx(fp, cellsize = sides[[i]], sample_id = sample_id,
+                                   spatialCoordsNames = spatialCoordsNames[1:2],
+                                   flip_geometry = flip_geometry, gene_col = gene_col,
+                                   save_memory = TRUE, BPPARAM = BPPARAM, ...)
+                centroids(sfe) <- st_centroid(colGeometry(sfe))
+                if (!is.null(tissue_boundary))
+                    sfe <- crop(sfe, tissue_boundary, keep_whole = "col")
+                sfes[[i]] <- sfe
+            } else {
+                sfe <- aggregate(sfes[[nesting[i]]], cellsize = sides[[i]], colGeometryName = "centroids")
+                centroids(sfe) <- st_centroid(colGeometry(sfe))
+                if (is.null(sfes[[i]]) && i %in% nesting) {
+                    sfes[[i]] <- sfe
+                }
+            }
+            saveObject(sfe, file.path(out_path, paste0("bin", sides[[i]])))
+            gc()
+        }
+    } else {
+        for (i in seq_along(sides)) {
+            cat("Processing", s, "\n")
+            sfe <- aggregateTx(fp, cellsize = s, sample_id = sample_id,
+                               spatialCoordsNames = spatialCoordsNames[1:2],
+                               flip_geometry = flip_geometry, gene_col = gene_col,
+                               save_memory = TRUE, BPPARAM = BPPARAM, ...)
+            if (!is.null(tissue_boundary))
+                sfe <- crop(sfe, tissue_boundary, keep_whole = "col")
+            saveObject(sfe, file.path(out_path, paste0("bin", s)))
+            gc()
+        }
     }
+
     invisible(out_path)
 }
 
@@ -122,8 +158,7 @@ makeAggregates <- function(tx_file, out_path,
 #' @param prop Logical, whether to return proportions of bin area in tissue
 #'   instead of actual area.
 #' @return A numeric vector same length as \code{ncol(sfe)}.
-#' @importFrom sf st_union st_intersects st_covered_by st_area st_intersection
-#'   st_overlaps st_as_sfc st_bbox
+#' @importFrom sf st_union st_intersects st_covered_by st_area st_intersection st_overlaps st_as_sfc st_bbox st_geometry
 #' @export
 getBinOverlapProp <- function(sfe, tissue_geometry, BPPARAM = SerialParam(),
                               batch_size = 1000, prop = TRUE) {
@@ -134,10 +169,9 @@ getBinOverlapProp <- function(sfe, tissue_geometry, BPPARAM = SerialParam(),
     areas <- bplapply(unique(bins$batch), function(i) {
         g <- st_geometry(bins)[bins$batch == i]
         out <- numeric(length(g))
-        xc <- st_union(st_geometry(tissue_geometry)[st_intersects(st_as_sfc(st_bbox(g)), tissue_geometry, sparse = FALSE)])
-        out[st_covered_by(g, xc, sparse = FALSE) |> as.vector()] <- AREA
-        inds_comp <- st_overlaps(g, xc, sparse = FALSE) |> as.vector()
-        out[inds_comp] <- st_area(st_intersection(g[inds_comp], xc))
+        out[st_covered_by(g, tissue_geometry, sparse = FALSE) |> as.vector()] <- AREA
+        inds_comp <- st_overlaps(g, tissue_geometry, sparse = FALSE) |> as.vector()
+        out[inds_comp] <- st_area(st_intersection(g[inds_comp], tissue_geometry))
         out
     }, BPPARAM = BPPARAM) |> unlist()
     areas[is.na(areas)] <- 0
@@ -186,8 +220,10 @@ removeEdgeBins <- function(sfe, overlap_props, min_prop = 0.9, quantile = NULL) 
         overlap_props <- colData(sfe)[,overlap_props]
     }
     if (is.null(quantile)) {
-        sfe[,overlap_props > min_prop]
+        th <- min_prop
     } else {
-        sfe[,overlap_props > quantile(overlap_props, probs = quantile)]
+        th <- quantile(overlap_props, probs = quantile)
     }
+    if (all(sfe$overlap_props < th)) warning("All bins fall below overlap threshold.")
+    sfe[, sfe$overlap_props > th]
 }
