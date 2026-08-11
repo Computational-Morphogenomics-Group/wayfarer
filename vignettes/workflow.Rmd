@@ -147,7 +147,7 @@ Plot the Moran's I curves with the mean and variance of Moran's I under the null
 
 ```{r, messages = FALSE}
 # Need to read all bin sizes for the spatial neighborhood graphs
-sfes <- readBins("expanded1/bin_analyses", sides = sides)
+sfes <- readBins("vignettes/expanded1/bin_analyses", sides = sides)
 mean_vars <- getMoranMeanVar(sfes, "moran")
 ```
 
@@ -227,7 +227,7 @@ plotSFEsBiscale(sfes[c("16", "48", "96")], pair_use[1], pair_use[2],
 ```
 
 ```{r}
-unlink("expanded1", recursive = TRUE)
+unlink("vignettes", recursive = TRUE)
 ```
 
 # Multiple samples
