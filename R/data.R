@@ -38,7 +38,7 @@
                    tx_spots = ".csv.gz",
                    tissue_boundary = "_tb.rds",
                    binned = ".tar.gz",
-                   binned_esda = ".tar.gz",
+                   binned_esda = "_esda.tar.gz",
                    cellchat = ".rds",
                    xenium = "_xenium.tar.gz")
     fnm <- paste0(sample, suff)
@@ -93,6 +93,7 @@
 #'   \code{Piezo1TissueBoundary} which returns a `sf` data frame.
 #' @name Piezo1-download
 #' @importFrom sf st_sf
+#' @importFrom stringr str_detect
 NULL
 
 #' @rdname Piezo1-download

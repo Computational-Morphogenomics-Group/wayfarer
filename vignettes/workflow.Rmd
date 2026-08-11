@@ -81,7 +81,7 @@ binned_path <- makeAggregates(tx_path,
 Since this takes a while to run, for the purpose of rendering this vignette on GitHub Actions, the results have been uploaded to OSF and can be downloaded
 
 ```{r}
-(binned_path <- Piezo1Binned("expanded1"))
+(binned_path <- Piezo1BinAnalyses("expanded1"))
 ```
 
 Decompress it into the current directory
@@ -107,7 +107,7 @@ runBinAnalyses("expanded1", "expanded1/bin_analyses", tissue_geometry = tb,
 Since the analyses can take a while to run, the results can also be downloaded from OSF
 
 ```{r}
-(bin_analyses_path <- Piezo1BinAnalyses("expanded1"))
+(bin_analyses_path <- Piezo1Binned("expanded1"))
 untar(bin_analyses_path)
 ```
 
@@ -115,7 +115,7 @@ untar(bin_analyses_path)
 Next see how Moran's I changes with bin sizes in this sample
 
 ```{r}
-df_moran <- read_csv("vignettes/expanded1/bin_analyses/df_moran.csv")
+df_moran <- read_csv("expanded1/bin_analyses/df_moran.csv")
 ```
 
 ```{r}
@@ -147,7 +147,7 @@ Plot the Moran's I curves with the mean and variance of Moran's I under the null
 
 ```{r, messages = FALSE}
 # Need to read all bin sizes for the spatial neighborhood graphs
-sfes <- readBins("vignettes/expanded1/bin_analyses", sides = sides)
+sfes <- readBins("expanded1/bin_analyses", sides = sides)
 mean_vars <- getMoranMeanVar(sfes, "moran")
 ```
 
@@ -159,7 +159,7 @@ plotMoranCurves(df_moran2, facet_by = "leiden", mean_vars = mean_vars,
 ## Lee's L curves
 Also read Lee's L; to make clustering easier, a cutoff of 0.2 is set so that gene pairs with Lee's L lower than 0.2 in all bin sizes will be removed.
 ```{r}
-df_lee <-readLeeSamples("vignettes/expanded1/bin_analyses", cutoff = 0.2)
+df_lee <-readLeeSamples("expanded1/bin_analyses", cutoff = 0.2)
 ```
 
 Due to the large number of gene pairs, a smaller subset can be plotted to prevent the plot from becoming a solid block
@@ -226,10 +226,6 @@ plotSFEsBiscale(sfes[c("16", "48", "96")], pair_use[1], pair_use[2],
                 heights = rep(1, 5))
 ```
 
-```{r}
-unlink("vignettes", recursive = TRUE)
-```
-
 # Multiple samples
 
 After seeing the Moran's I and Lee's L curves for one sample, one may say, "Interesting, so what?" So we'll compare these curves across multiple biological conditions and see what genes and gene pairs differ in this multi-scale manner that may not be apparent when only one spatial scale is analyzed. Here we get which sample is from which biological condition
@@ -239,6 +235,10 @@ sample_info
 ```
 
 The method to find what's different across stages is currently subject to change.
+
+```{r}
+unlink(sample_info$sample, recursive = TRUE)
+```
 
 # Session info
 ```{r}

@@ -145,10 +145,10 @@ for (p in xenium_paths) {
 }
 
 # compress binned output
+setwd("vignettes")
 for (s in samples) {
-    fp <- file.path("vignettes", s)
-    files1 <- list.files(fp, "^bin", full.names = TRUE)
+    files1 <- list.files(s, "^bin\\d+", full.names = TRUE)
     tar(file.path("binned", paste0(s, ".tar.gz")), files1, compression = "gzip")
-    files2 <- file.path(fp, "bin_analyses")
-    tar(file.path("processed", paste0(s, ".tar.gz")), files2, compression = "gzip")
+    files2 <- file.path(s, "bin_analyses")
+    tar(file.path("processed", paste0(s, "_esda.tar.gz")), files2, compression = "gzip")
 }
