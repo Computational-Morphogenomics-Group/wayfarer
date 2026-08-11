@@ -81,7 +81,7 @@ binned_path <- makeAggregates(tx_path,
 Since this takes a while to run, for the purpose of rendering this vignette on GitHub Actions, the results have been uploaded to OSF and can be downloaded
 
 ```{r}
-(binned_path <- Piezo1BinAnalyses("expanded1"))
+(binned_path <- Piezo1Binned("expanded1"))
 ```
 
 Decompress it into the current directory
@@ -107,7 +107,7 @@ runBinAnalyses("expanded1", "expanded1/bin_analyses", tissue_geometry = tb,
 Since the analyses can take a while to run, the results can also be downloaded from OSF
 
 ```{r}
-(bin_analyses_path <- Piezo1Binned("expanded1"))
+(bin_analyses_path <- Piezo1BinAnalyses("expanded1"))
 untar(bin_analyses_path)
 ```
 
