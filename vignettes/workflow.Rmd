@@ -44,7 +44,6 @@ library(ggplot2)
 library(stringr)
 library(purrr)
 library(tidyr)
-library(scater)
 library(R.utils)
 theme_set(theme_bw())
 ```
