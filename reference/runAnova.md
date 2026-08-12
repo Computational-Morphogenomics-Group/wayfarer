@@ -1,0 +1,50 @@
+# Perform ANOVA to find whether spatial metric is associated with scale and group
+
+Because the spatial metrics for the same gene or gene pairs at different
+bin sizes are not independeent, repeated measures ANOVA is used as if
+the different bin sizes are repeated measures. The group in biological
+condition is the between subject factor. This function will find whether
+the spatial metric is generally associated with scale or group, or the
+interaction between scale and group.
+
+## Usage
+
+``` r
+runAnova(df_res, degree = 2, BPPARAM = SerialParam())
+```
+
+## Arguments
+
+- df_res:
+
+  A data frame with Moran's I or Lee's L across bin sizes and samples,
+  such as from [`readMoranSamples`](readMoranSamples.md) or
+  [`readLeeSamples`](readLeeSamples.md). The columns should be renamed
+  so that the gene or gene pair column is named "feature", the Moran's I
+  or Lee's L values column is named "value", and the group column from
+  additional sample info is named "group". There should also be a column
+  "weights" due to heteroscadiscity.
+
+- degree:
+
+  degree of the piecewise polynomial—default is `3` for cubic splines.
+
+- BPPARAM:
+
+  A `bpparam` object to parallelize computation over features.
+
+## Value
+
+A data frame with p-values for bin size (side), group, and interaction
+of the two. The model and the estimated marginal means are also saved.
+The column `p_normality` is the p-value in the normality test. If it's
+small, it indicates non-normal residuals. You can inspect by taking the
+relevant item in the `model` column with the function
+[`check_model`](https://easystats.github.io/performance/reference/check_model.html).
+
+## Details
+
+False positives are often caused by increasing variance of Moran's I and
+Lee's L with smaller number of bins for larger bins. To mitigate this
+type of false positives, genes/gene pairs whose ANOVA model shows
+significantly non-normal residuals can be removed.

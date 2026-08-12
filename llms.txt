@@ -25,8 +25,9 @@ This package will be submitted to Bioconductor soon.
 - [`Piezo1TxSpots()`](Piezo1-download.md)
   [`Piezo1TissueBoundary()`](Piezo1-download.md)
   [`Piezo1Binned()`](Piezo1-download.md)
-  [`Piezo1BinAnalyses()`](Piezo1-download.md) : Download Xenium data
-  from Xue et al.
+  [`Piezo1BinAnalyses()`](Piezo1-download.md)
+  [`Piezo1Xenium()`](Piezo1-download.md) : Download Xenium data from Xue
+  et al.
 - [`clusterLeeCurves()`](clusterLeeCurves.md) : Cluster Lee's L curves
 - [`clusterMoranCurves()`](clusterMoranCurves.md) : Cluster Moran's I
   curves
@@ -37,8 +38,11 @@ This package will be submitted to Bioconductor soon.
   gene pairs in CellChatDB
 - [`getMoranMeanVar()`](getMoranMeanVar.md) : Get the mean and variance
   of Moran's I
+- [`getPredCurves()`](getPredCurves.md) : Get fitted curves per group
 - [`makeAggregates()`](makeAggregates.md) : Aggregate transcript spots
   into bins of varying sizes
+- [`makeMonteCarlo()`](makeMonteCarlo.md) : Create Monte Carlo
+  simulations with no spatial structure
 - [`plotClusterMedians()`](plotClusterMedians.md) : Plot cluster median
   curves
 - [`plotEigenvalues()`](plotEigenvalues.md) : Plot variance explained
@@ -56,6 +60,9 @@ This package will be submitted to Bioconductor soon.
   space from multiple SFE objects
 - [`plotSFEsRedDim()`](plotSFEsRedDim.md) : Plot dimension reduction in
   space for multiple SFE objects
+- [`plotWpca()`](plotWpca.md) : Plot projections of genes/gene pairs in
+  Wpca space
+- [`plotWpcaLoadings()`](plotWpcaLoadings.md) : Plot Wpca loadings
 - [`readBinSamples()`](readBinSamples.md) : Read one bin size from
   multiple samples
 - [`readBins()`](readBins.md) : Read aggregated data from multiple bin
@@ -66,10 +73,14 @@ This package will be submitted to Bioconductor soon.
   I results from multiple samples
 - [`removeEdgeBins()`](removeEdgeBins.md) : Remove bins that overlap too
   little with the tissue boundary
+- [`runAnova()`](runAnova.md) : Perform ANOVA to find whether spatial
+  metric is associated with scale and group
 - [`runBinAnalyses()`](runBinAnalyses.md) : Run basic analyses on
   aggregated SFE objects of all bin sizes
 - [`runBinLMM()`](runBinLMM.md) : Use linear mixed model to compare
   among groups
+- [`runWpca()`](runWpca.md) : Run weighted PCA on fitted curves per
+  stage
 - [`sample_info`](sample_info.md) : Sample info for the Piezo1 Xenium
   data
 - [`toMultifileParquet()`](toMultifileParquet.md) : Convert transcript

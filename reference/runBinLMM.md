@@ -12,7 +12,7 @@ groups, though it does not indicate which groups are different.
 ## Usage
 
 ``` r
-runBinLMM(df_res, degree = 2, BPPARAM = SerialParam())
+runBinLMM(df_res, degree = 2, BPPARAM = SerialParam(), save_models = FALSE)
 ```
 
 ## Arguments
@@ -24,7 +24,8 @@ runBinLMM(df_res, degree = 2, BPPARAM = SerialParam())
   [`readLeeSamples`](readLeeSamples.md). The columns should be renamed
   so that the gene or gene pair column is named "feature", the Moran's I
   or Lee's L values column is named "value", and the group column from
-  additional sample info is named "group".
+  additional sample info is named "group". There should also be a column
+  "weights" due to heteroscadiscity.
 
 - degree:
 
@@ -34,6 +35,13 @@ runBinLMM(df_res, degree = 2, BPPARAM = SerialParam())
 
   A `bpparam` object to parallelize computation over features.
 
+- save_models:
+
+  Logical, whether to save the fitted models.
+
 ## Value
 
-A data frame with p-values and adjusted p-values for each feature
+A data frame with p-values, adjusted p-values, and log likelihood ratios
+for each feature. If `save_models = TRUE`, then there will also be a
+list column for the fitted models and a list column `data` for the data
+used to fit the models, which can be used to get the predicted curves.

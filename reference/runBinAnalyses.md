@@ -11,7 +11,7 @@ runBinAnalyses(
   dir,
   out_path,
   tissue_geometry,
-  min_props = 0.9,
+  min_props = 0.8,
   quantiles = NULL,
   ncomponents = 30,
   queen = FALSE,

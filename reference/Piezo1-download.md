@@ -33,6 +33,12 @@ Piezo1BinAnalyses(
     "nonexpanded1", "nonexpanded2", "yoda1", "yoda2"),
   bfc = BiocFileCache()
 )
+
+Piezo1Xenium(
+  sample = c("all", "expanded1", "expanded2", "expanded1_pi7", "expanded2_pi7",
+    "nonexpanded1", "nonexpanded2", "yoda1", "yoda2"),
+  bfc = BiocFileCache()
+)
 ```
 
 ## Arguments
